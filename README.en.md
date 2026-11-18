@@ -1,22 +1,39 @@
 # plushub4deliver · Operator guide
 
-The customer deploys this AI gateway on their own domain, issues API keys to end users, sets retail prices, and handles refunds. The gateway forwards requests using the customer's upstream key. The supplier bills the customer separately for usage recorded on the supplier's platform.
+[简体中文](./README.zh_CN.md) · [繁體中文](./README.zh_TW.md) · [Français](./README.fr.md) · [日本語](./README.ja.md)
+
+You deploy this AI gateway on your own domain and issue API keys to your users. Your site forwards requests to the supplier's gateway using the upstream API key assigned to your account. The supplier routes them to the model providers.
+
+You set retail prices, manage user balances, and handle refunds on your site. The supplier bills you separately for usage recorded on your upstream account.
 
 ## Deployment and handover
 
-The delivery Compose file builds the branded web and API service from this repository and starts PostgreSQL and Redis. The two guides are available in Simplified Chinese.
+| Task | Guide |
+| --- | --- |
+| Deploy the site, configure HTTPS, create the first administrator, and back up or upgrade the installation | [Single-server deployment guide (Simplified Chinese)](./delivery/DEPLOYMENT.zh-CN.md) |
+| Set up the upstream channel, configure retail prices, and verify model calls against both billing records | [Customer handover manual (Simplified Chinese)](./delivery/甲方交付手册.md) |
 
-- Deploy the three services, configure HTTPS, initialize the administrator, and back up or upgrade the site. [Deployment guide](./delivery/DEPLOYMENT.zh-CN.md) · [Delivery Compose file](./delivery/compose.yaml)
-- Receive the upstream credentials, configure channels and pricing, and verify calls and billing. [Customer handover manual](./delivery/甲方交付手册.md)
+Use the delivery Compose file for this edition. It builds the branded web and API service from this repository and starts PostgreSQL and Redis alongside it. [Delivery Compose file](./delivery/compose.yaml)
 
 ## Public pages
 
-- **Home (`/`).** Users search the model directory by model or provider, filter by text, image, or video, and open a model's pricing details. Visibility follows the site's model marketplace settings. [Home preview with sample models and prices](./assets/screenshots/delivery-home.zh-CN.png)
-- **Sign in (`/sign-in`).** A centered form displays the site's branding. When password sign-in is enabled, users sign in with a username or email address and a password. Registration and other sign-in options follow the administrator's settings. [Sign-in preview](./assets/screenshots/delivery-sign-in.zh-CN.png)
+### Home `/`
+
+The default home page opens with a model directory. Users can search by model or provider, filter by text, image, or video, and select a model to see its pricing. API request examples appear below the directory. The catalog follows the site's model marketplace visibility settings. If you set a custom home page, visitors see that page instead.
+
+The screenshots show the Simplified Chinese interface. The models and prices shown below are sample data.
+
+![Home page with model search, category filters, and pricing cards](./assets/screenshots/delivery-home.zh-CN.png)
+
+### Sign in `/sign-in`
+
+The upper-left corner displays your site's name and logo. When password sign-in is enabled, users enter their username or email address and password in the centered form. Registration and other sign-in options follow your site settings. To change the displayed name or logo, open the site settings in the administrator console.
+
+![Branded sign-in page with username and password fields](./assets/screenshots/delivery-sign-in.zh-CN.png)
 
 ## Copyright and attribution
 
-This edition is based on [New API](https://github.com/QuantumNous/new-api) `v1.0.0-rc.51`. Copyright (c) QuantumNous and contributors. The site footer links to the upstream project and retains the attribution below.
+This edition is based on [New API](https://github.com/QuantumNous/new-api) `v1.0.0-rc.51`. Copyright (c) QuantumNous and contributors. The site footer links to the upstream project and displays its attribution.
 
 > Frontend design and development by New API contributors.
 
