@@ -1,4 +1,4 @@
-# plushub4deliver · Guide d’exploitation
+# jayhub · Guide d’exploitation
 
 Le client déploie cette passerelle sur son domaine, délivre les clés API aux utilisateurs et gère les tarifs, les crédits et les remboursements. La passerelle transmet les requêtes avec la clé attribuée au client par le fournisseur. Celui-ci facture séparément la consommation enregistrée sur le compte du client.
 

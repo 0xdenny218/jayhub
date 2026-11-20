@@ -1,6 +1,6 @@
-# plushub4deliver 单机部署与运维
+# jayhub 单机部署与运维
 
-首次获取源码，请联系供货方运营申请 GitHub 私有仓库邀请。使用受邀账号接受邀请后，按[甲方交付手册](./甲方交付手册.md)配置 Git 访问并克隆指定版本。
+首次获取源码时，请联系供货方运营确认交付版本及上游渠道。按[甲方交付手册](./甲方交付手册.md)从 jayhub 仓库克隆指定版本。
 
 从交付包根目录执行本文命令。配套的 [Compose 文件](./compose.yaml) 启动三个容器。`app` 提供网页和 API，`postgres` 保存账号、渠道和账单，`redis` 提供缓存。应用镜像由交付源码构建，包含定制首页和站点品牌。交付版使用本页配套文件；根目录的通用 Compose 默认拉取上游镜像。
 
@@ -8,46 +8,58 @@
 
 准备一台安装了 Docker Engine、Docker Compose 插件和 OpenSSL 的 Linux 服务器，以及一个已解析到服务器的 HTTPS 域名。首次构建需要能够下载基础镜像、Go 模块和前端依赖。宿主机 3000 端口须可用。
 
-以下假定交付源码位于 `/opt/plushub4deliver`，HTTPS 反向代理运行在同一台宿主机。把域名转发到 `http://127.0.0.1:3000`，保留请求的 Host 和原始 HTTPS 协议。代理应支持流式响应，使用 Nginx 时对 API 路径关闭响应缓冲。首次初始化完成前，将域名访问限制在运维人员范围内。
+以下假定交付源码位于 `/opt/jayhub`，HTTPS 反向代理运行在同一台宿主机。把域名转发到 `http://127.0.0.1:3000`，保留请求的 Host 和原始 HTTPS 协议。代理应支持流式响应，使用 Nginx 时对 API 路径关闭响应缓冲。首次初始化完成前，将域名访问限制在运维人员范围内。
 
 构建目录使用干净的交付源码，包含 `delivery/site.json`、`web/`、`relaykit/` 和 `tokenkit/`。运行密钥、数据库文件、日志和备份存放在源码目录外。
+
+### 从 plushub4deliver 升级
+
+已有实例请先备份，沿用原部署目录、原 `deploy.env` 和原 Compose 项目名。原版按手册安装时，配置文件是 `~/.config/plushub4deliver/deploy.env`，项目名是 `plushub4deliver`。在原源码目录更新至本次交付版本后，使用下面的命令重建服务，即可继续挂载原 PostgreSQL、Redis 和应用数据卷。曾通过 `-p` 自定义项目名的实例，请换成自己的项目名。
+
+```sh
+cd /opt/plushub4deliver
+docker compose -p plushub4deliver --env-file "$HOME/.config/plushub4deliver/deploy.env" -f delivery/compose.yaml up -d --build
+```
+
+新装实例按下文生成 `jayhub` 配置。后台已保存的站名优先于新版默认值，需要更换时在「系统设置 → 站点 → 系统信息」保存 `jayhub`。
 
 ## 2. 首次生成配置
 
 将下面的 `https://gateway.example.com` 换成浏览器实际访问的 HTTPS 地址。填写协议、主机和必要的端口，例如 `https://api.example.com:8443`，省略路径和末尾斜杠。在有权写入部署目录的运维账号下执行一次。
 
 ```sh
-cd /opt/plushub4deliver
+cd /opt/jayhub
 (
   set -euC
   umask 077
-  mkdir -p "$HOME/.config/plushub4deliver"
+  mkdir -p "$HOME/.config/jayhub"
   {
     echo 'SITE_ORIGIN=https://gateway.example.com'
+    echo 'COMPOSE_PROJECT_NAME=jayhub'
     for key in POSTGRES_PASSWORD REDIS_PASSWORD SESSION_SECRET CRYPTO_SECRET; do
       value=$(openssl rand -hex 32)
       printf '%s=%s\n' "$key" "$value"
     done
-  } > "$HOME/.config/plushub4deliver/deploy.env"
+  } > "$HOME/.config/jayhub/deploy.env"
 )
 ```
 
-配置文件位于 `~/.config/plushub4deliver/deploy.env`。重复执行会拒绝覆盖已有文件。升级和恢复时使用同一份密钥；已有 PostgreSQL 数据卷的密码轮换需要同时更新数据库角色和应用配置。
+配置文件位于 `~/.config/jayhub/deploy.env`。重复执行会拒绝覆盖已有文件。升级和恢复时使用同一份密钥；已有 PostgreSQL 数据卷的密码轮换需要同时更新数据库角色和应用配置。
 
 ## 3. 构建并启动
 
 在交付源码根目录执行。下面的 `dc` 是当前 shell 的简写，打开新终端后重新定义即可。
 
 ```sh
-cd /opt/plushub4deliver
-dc() { docker compose --env-file "$HOME/.config/plushub4deliver/deploy.env" -f delivery/compose.yaml "$@"; }
+cd /opt/jayhub
+dc() { docker compose --env-file "$HOME/.config/jayhub/deploy.env" -f delivery/compose.yaml "$@"; }
 dc config --quiet
 dc up -d --build
 dc ps
 curl -fsS http://127.0.0.1:3000/api/status
 ```
 
-等待三个服务都显示 `healthy`。本机状态接口应返回 `"success":true`，首次部署的 `data.system_name` 应为 `plushub4deliver`。首轮编译需要一些时间；启动异常时运行 `dc logs --tail=100 app postgres redis`。对外入口是 HTTPS 域名，PostgreSQL 和 Redis 仅在 Compose 内部网络提供服务。
+等待三个服务都显示 `healthy`。本机状态接口应返回 `"success":true`，首次部署的 `data.system_name` 应为 `jayhub`。首轮编译需要一些时间；启动异常时运行 `dc logs --tail=100 app postgres redis`。对外入口是 HTTPS 域名，PostgreSQL 和 Redis 仅在 Compose 内部网络提供服务。
 
 ## 4. 初始化与业务验收
 
@@ -71,8 +83,8 @@ curl -fsS http://127.0.0.1:3000/api/status
 
 ```sh
 umask 077
-mkdir -p "$HOME/plushub-backups"
-dc exec -T postgres pg_dump -U plushub -d plushub -Fc > "$HOME/plushub-backups/postgres-$(date +%Y%m%d-%H%M%S).dump"
+mkdir -p "$HOME/jayhub-backups"
+dc exec -T postgres pg_dump -U plushub -d plushub -Fc > "$HOME/jayhub-backups/postgres-$(date +%Y%m%d-%H%M%S).dump"
 ```
 
 `pg_data` 保存数据库，`app_data` 保存应用文件及文件日志，`redis_data` 保存 Redis 持久化数据。备份计划应包含这些卷和单独保管的 `deploy.env`，并在隔离环境验证恢复。升级可能迁移数据库，回滚前核对应用和数据库备份的版本。运维时保留数据卷，`docker compose down -v` 会删除项目卷。

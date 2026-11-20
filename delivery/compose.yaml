@@ -1,4 +1,5 @@
-name: plushub4deliver
+# Preserve the original volumes when upgrading with a pre-rename deploy.env.
+name: ${COMPOSE_PROJECT_NAME:-plushub4deliver}
 
 services:
   app:

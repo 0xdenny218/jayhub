@@ -1,4 +1,4 @@
-# plushub4deliver · Operator guide
+# jayhub · Operator guide
 
 [简体中文](./README.zh_CN.md) · [繁體中文](./README.zh_TW.md) · [Français](./README.fr.md) · [日本語](./README.ja.md)
 
