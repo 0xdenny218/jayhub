@@ -3,7 +3,6 @@
 body:has(#root .delivery-public) [data-base-ui-portal],
 body:has(#root .delivery-public) [data-sonner-toaster] {
   --radius: 0.625rem;
-  --delivery-highlight: #9b631b;
   --delivery-heading-gradient: linear-gradient(
     110deg,
     #8d5815 0%,
@@ -22,7 +21,6 @@ body:has(#root .delivery-public) [data-sonner-toaster] {
 .dark .delivery-public,
 .dark body:has(#root .delivery-public) [data-base-ui-portal],
 .dark body:has(#root .delivery-public) [data-sonner-toaster] {
-  --delivery-highlight: #e0bc7c;
   --delivery-heading-gradient: linear-gradient(
     110deg,
     #d6b476 0%,
