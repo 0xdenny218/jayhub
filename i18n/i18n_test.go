@@ -205,3 +205,16 @@ func TestServerLogLanguage(t *testing.T) {
 	common.SetLogLanguage("en")
 	assert.Equal(t, "channel #7 has 2 unfinished tasks", common.LogText(line, 7, 2))
 }
+
+func TestDashboardLanguageHeaderWithLegacyUserPreference(t *testing.T) {
+	for _, tc := range []struct{ path, want string }{
+		{"/api/user/self", LangEn},
+		{"/v1/chat/completions", LangZhCN},
+	} {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Request = httptest.NewRequest("GET", tc.path, nil)
+		c.Request.Header.Set("Accept-Language", "en")
+		c.Set(string(constant.ContextKeyUserSetting), dto.UserSetting{Language: "zh-CN"})
+		assert.Equal(t, tc.want, StatedLang(c), tc.path)
+	}
+}

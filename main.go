@@ -18,6 +18,7 @@ import (
 	"github.com/plushubai/plushub4deliver/common"
 	"github.com/plushubai/plushub4deliver/constant"
 	"github.com/plushubai/plushub4deliver/controller"
+	"github.com/plushubai/plushub4deliver/delivery"
 	"github.com/plushubai/plushub4deliver/i18n"
 	"github.com/plushubai/plushub4deliver/logger"
 	"github.com/plushubai/plushub4deliver/middleware"
@@ -47,9 +48,6 @@ var buildFS embed.FS
 
 //go:embed web/dist/index.html
 var indexPage []byte
-
-//go:embed delivery/site.json
-var deliverySiteSettings []byte
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "plugin" {
@@ -363,15 +361,8 @@ func InitResources() error {
 	model.CheckSetup()
 
 	// Operator settings saved in the database take precedence over the delivery profile.
-	var site struct {
-		SystemName string
-		Logo       string
-	}
-	if err := common.Unmarshal(deliverySiteSettings, &site); err != nil {
-		return err
-	}
-	common.SystemName = site.SystemName
-	common.Logo = site.Logo
+	common.SystemName = delivery.Site.SystemName
+	common.Logo = delivery.Site.Logo
 
 	// Initialize options, should after model.InitDB()
 	if common.IsMasterNode {

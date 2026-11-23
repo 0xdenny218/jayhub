@@ -21,7 +21,7 @@ cd /opt/plushub4deliver
 docker compose -p plushub4deliver --env-file "$HOME/.config/plushub4deliver/deploy.env" -f delivery/compose.yaml up -d --build
 ```
 
-新装实例按下文生成 `jayhub` 配置。后台已保存的站名优先于新版默认值，需要更换时在「系统设置 → 站点 → 系统信息」保存 `jayhub`。
+新装实例显示 BrainButter AI。已保存的旧默认站名和图标在升级时自动采用新品牌，自定义站名和图标继续生效。
 
 ## 2. 首次生成配置
 
@@ -59,7 +59,7 @@ dc ps
 curl -fsS http://127.0.0.1:3000/api/status
 ```
 
-等待三个服务都显示 `healthy`。本机状态接口应返回 `"success":true`，首次部署的 `data.system_name` 应为 `jayhub`。首轮编译需要一些时间；启动异常时运行 `dc logs --tail=100 app postgres redis`。对外入口是 HTTPS 域名，PostgreSQL 和 Redis 仅在 Compose 内部网络提供服务。
+等待三个服务都显示 `healthy`。本机状态接口应返回 `"success":true`，首次部署的 `data.system_name` 应为 `BrainButter AI`。首轮编译需要一些时间；启动异常时运行 `dc logs --tail=100 app postgres redis`。对外入口是 HTTPS 域名，PostgreSQL 和 Redis 仅在 Compose 内部网络提供服务。
 
 ## 4. 初始化与业务验收
 

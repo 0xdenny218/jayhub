@@ -56,7 +56,6 @@ it('exposes the mobile menu only while open and closes it after navigation', asy
     component: () => (
       <PublicHeader
         showThemeSwitch={false}
-        showLanguageSwitcher={false}
         showNotifications={false}
         showAuthButtons={false}
       />

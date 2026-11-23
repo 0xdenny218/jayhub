@@ -127,6 +127,8 @@ func SetUserLangLoader(loader func(userId int) string) {
 
 // StatedLang returns the language the reader of a request stated, or "" when
 // there is none. It checks multiple sources in priority order:
+// Dashboard requests can explicitly select the interface language with Accept-Language.
+// Otherwise the following precedence applies:
 // 1. User settings (ContextKeyUserSetting) - if already loaded (e.g., by TokenAuth)
 // 2. Lazy load user language from cache/DB using user ID, when step 1 found no settings
 // 3. Language set by middleware (ContextKeyLanguage) - from Accept-Language header
@@ -134,6 +136,12 @@ func SetUserLangLoader(loader func(userId int) string) {
 func StatedLang(c *gin.Context) string {
 	if c == nil {
 		return ""
+	}
+
+	if c.Request != nil && strings.HasPrefix(c.Request.URL.Path, "/api/") {
+		if lang := ParseAcceptLanguage(c.GetHeader("Accept-Language")); lang != "" {
+			return lang
+		}
 	}
 
 	// 1. Try to get language from user settings (if already loaded by TokenAuth or other middleware)

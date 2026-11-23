@@ -8,6 +8,7 @@ import (
 
 	"github.com/plushubai/plushub4deliver/common"
 	"github.com/plushubai/plushub4deliver/constant"
+	"github.com/plushubai/plushub4deliver/delivery"
 	"github.com/plushubai/plushub4deliver/pkg/jsplugin"
 	"github.com/plushubai/plushub4deliver/setting"
 	"github.com/plushubai/plushub4deliver/setting/config"
@@ -392,6 +393,7 @@ func updateOptionMap(key string, value string) (err error) {
 	}
 	common.OptionMapRWMutex.Lock()
 	defer common.OptionMapRWMutex.Unlock()
+	value = delivery.DisplayOption(key, value)
 	common.OptionMap[key] = value
 
 	// 检查是否是模型配置 - 使用更规范的方式处理

@@ -73,6 +73,7 @@ const authClient = axios.create({
   headers: {
     // no-store forbids storage; no-cache also revalidates any older cached response.
     'Cache-Control': 'no-cache, no-store',
+    'Accept-Language': 'en',
   },
 })
 

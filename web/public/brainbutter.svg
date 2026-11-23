@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>BrainButter AI</title>
+  <rect x="1" y="1" width="62" height="62" rx="17" fill="#f5ce70"/>
+  <g fill="none" stroke="#412f18" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">
+    <path fill="#fff0b9" d="M32 17c-3-4-10-4-13 2-5 0-9 5-8 10-5 5-3 13 3 16 1 6 9 9 15 5l3-3c4 6 12 7 17 1 5-1 8-6 7-11 3-5 0-11-4-13 0-6-6-10-11-9-4-2-7-1-9 2Z"/>
+    <path d="M32 17v30M11 29c4 0 8 3 8 7m-5 9c2-4 6-5 10-5m28-16c-5 0-8 3-8 7m11 6c-5-2-11 0-13 5M24 24c0 4 3 7 8 7"/>
+  </g>
+</svg>

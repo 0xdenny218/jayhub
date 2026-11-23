@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -9,6 +10,9 @@ import { tanstackRouter } from '@tanstack/router-plugin/rspack'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ envMode }) => {
+  const site = JSON.parse(
+    readFileSync(path.join(__dirname, '../delivery/site.json'), 'utf8')
+  ) as { SystemName: string }
   const env = loadEnv({ mode: envMode, prefixes: ['VITE_'] })
   const serverUrl =
     process.env.VITE_REACT_APP_SERVER_URL ||
@@ -64,7 +68,8 @@ export default defineConfig(({ envMode }) => {
     },
     html: {
       template: './index.html',
-      favicon: './public/favicon.ico',
+      templateParameters: { siteName: site.SystemName },
+      favicon: './public/brainbutter.svg',
     },
     server: {
       host: '0.0.0.0',

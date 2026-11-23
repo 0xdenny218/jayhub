@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-site-name="<%= siteName %>">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google" content="notranslate" />
 
     <!-- Primary Meta Tags -->
+    <meta name="generator" content="New API" />
     <title>New API</title>
     <meta name="title" content="New API" />
     <meta
@@ -13,12 +14,18 @@
       content="Unified AI API gateway and admin dashboard."
     />
 
-    <meta name="theme-color" content="#fff" />
+    <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#191a17" media="(prefers-color-scheme: dark)" />
     <!-- Resolve the theme before first paint so the page never flashes light
          and one-shot detectors (e.g. Dark Reader) see the real theme.
          Keep in sync with ThemeProvider and THEME_STORAGE_KEYS.mode. -->
     <script>
       ;(function () {
+        var siteName = document.documentElement.dataset.siteName
+        if (siteName) {
+          document.title = siteName
+          document.querySelector('meta[name="title"]').content = siteName
+        }
         var theme = 'system'
         try {
           theme = localStorage.getItem('newapi:theme:v1:mode') || 'system'

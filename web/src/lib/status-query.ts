@@ -108,7 +108,8 @@ export function readCachedStatus(): StatusData | null {
   try {
     if (typeof window === 'undefined') return null
     const raw = window.localStorage.getItem(STATUS_STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as StatusData) : null
+    const cached = raw ? (JSON.parse(raw) as StatusData) : null
+    return cached?.system_name === 'jayhub' ? null : cached
   } catch {
     return null
   }
