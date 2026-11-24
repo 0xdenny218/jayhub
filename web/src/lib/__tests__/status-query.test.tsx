@@ -22,6 +22,7 @@ import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
 import { useStatus } from '@/hooks/use-status'
+import { useTopNavLinks } from '@/hooks/use-top-nav-links'
 import { api } from '@/lib/api'
 import {
   getModuleAccessForGuard,
@@ -91,6 +92,39 @@ afterEach(() => {
 })
 
 describe('shared status query deduplication', () => {
+  test('omits Rankings from navigation even when the server enables it', async () => {
+    const queryClient = createQueryClient()
+    apiClient.get = async () => ({
+      data: {
+        success: true,
+        data: {
+          HeaderNavModules: {
+            pricing: { enabled: true, requireAuth: true },
+            rankings: { enabled: true, requireAuth: false },
+          },
+        },
+      },
+    })
+    const { result } = renderHook(useTopNavLinks, {
+      wrapper: wrapper(queryClient),
+    })
+
+    await waitFor(() =>
+      expect(
+        result.current.find((link) => link.href === '/pricing')
+      ).toMatchObject({
+        requiresAuth: true,
+      })
+    )
+    expect(result.current.map((link) => link.href)).toEqual([
+      '/',
+      '/dashboard',
+      '/pricing',
+      '/docs',
+      '/about',
+    ])
+  })
+
   test.each(['cold', 'stale'] as const)(
     'deduplicates %s cache requests across guards and hook consumers',
     async (cacheState) => {
