@@ -41,7 +41,7 @@ export function FAQPanel() {
     <PanelWrapper
       title={
         <span className='flex items-center gap-2'>
-          <IconBadge tone='chart-4' size='sm'>
+          <IconBadge size='sm'>
             <HelpCircle />
           </IconBadge>
           {t('FAQ')}
@@ -71,7 +71,7 @@ export function FAQPanel() {
                   </Markdown>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <Markdown className='text-muted-foreground/60 text-sm'>
+                  <Markdown className='text-muted-foreground text-sm'>
                     {item.answer}
                   </Markdown>
                 </AccordionContent>

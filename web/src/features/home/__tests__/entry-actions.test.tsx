@@ -26,6 +26,8 @@ import {
 import { render, screen } from '@testing-library/react'
 import { afterEach, expect, it } from 'vitest'
 
+import { PublicNavigation } from '@/components/layout/components/public-navigation'
+
 import { Hero } from '../components/sections/hero'
 
 const clients: QueryClient[] = []
@@ -40,7 +42,12 @@ function renderHero(
   clients.push(client)
   client.setQueryData(['status'], { docs_link: docs })
   const root = createRootRoute({
-    component: () => <Hero isAuthenticated={isAuthenticated} />,
+    component: () => (
+      <>
+        <PublicNavigation />
+        <Hero isAuthenticated={isAuthenticated} />
+      </>
+    ),
   })
   const router = createRouter({
     routeTree: root,
@@ -58,7 +65,7 @@ afterEach(() => {
   localStorage.clear()
 })
 
-it('gives visitors signup and configured documentation entry points', async () => {
+it('opens the built-in docs even when the server advertises external documentation', async () => {
   renderHero(false)
   expect(
     await screen.findByRole('heading', {
@@ -76,8 +83,11 @@ it('gives visitors signup and configured documentation entry points', async () =
   ).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Docs' })).toHaveAttribute(
     'href',
-    'https://docs.example.test'
+    '/docs'
   )
+  const docsNavLink = screen.getByRole('link', { name: 'Docs' })
+  expect(docsNavLink).toHaveAttribute('href', '/docs')
+  expect(docsNavLink).not.toHaveAttribute('target', '_blank')
   expect(screen.getByRole('link', { name: /Cherry Studio/ })).toHaveAttribute(
     'href',
     'https://cherry-ai.com'

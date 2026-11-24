@@ -47,11 +47,6 @@ For commercial licensing, please contact support@quantumnous.com
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-action: var(--action, var(--primary));
-  --color-action-foreground: var(
-    --action-foreground,
-    var(--primary-foreground)
-  );
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -108,20 +103,6 @@ For commercial licensing, please contact support@quantumnous.com
    * saved preference. Explicit Sans selects Public Sans in theme-presets.css. */
   --font-ui-sans: sans-serif;
   --font-body: var(--font-ui-sans);
-  --background: #faf9f6;
-  --foreground: #272822;
-  --card: #fffefa;
-  --card-foreground: #272822;
-  --popover: #fffefa;
-  --popover-foreground: #272822;
-  --primary: #855615;
-  --primary-foreground: #fffefa;
-  --secondary: #eeeae1;
-  --secondary-foreground: #34352e;
-  --muted: #eeeae1;
-  --muted-foreground: #737168;
-  --accent: #f2e7d1;
-  --accent-foreground: #6f4918;
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
   --success: oklch(0.596 0.145 163.225);
@@ -132,10 +113,7 @@ For commercial licensing, please contact support@quantumnous.com
   --info-foreground: oklch(0.985 0 0);
   --neutral: oklch(0.708 0 0);
   --neutral-foreground: oklch(0.145 0 0);
-  --border: #dcd8cf;
-  --input: #cec8bb;
-  --ring: #aa701f;
-  --chart-1: #a46b1b;
+  --chart-1: var(--delivery-highlight);
   --chart-2: oklch(0.65 0.15 200);
   --chart-3: oklch(0.7 0.12 280);
   --chart-4: oklch(0.68 0.19 325);
@@ -143,11 +121,11 @@ For commercial licensing, please contact support@quantumnous.com
   --overview-accent-1: var(--chart-1);
   --overview-accent-2: var(--chart-2);
   --overview-accent-3: var(--chart-3);
-  --sidebar: #f6f2e8;
+  --sidebar: var(--background);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #f4e3bd;
+  --sidebar-accent: var(--accent);
   --sidebar-accent-foreground: var(--accent-foreground);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
@@ -187,20 +165,6 @@ For commercial licensing, please contact support@quantumnous.com
   /* Native controls follow the theme; Dark Reader also reads this to detect
      the built-in dark theme. */
   color-scheme: dark;
-  --background: #191a17;
-  --foreground: #f0ede5;
-  --card: #22231f;
-  --card-foreground: #f0ede5;
-  --popover: #292a25;
-  --popover-foreground: #f0ede5;
-  --primary: #e7c47c;
-  --primary-foreground: #24231d;
-  --secondary: #30312a;
-  --secondary-foreground: #f0ede5;
-  --muted: #30312a;
-  --muted-foreground: #b3afa3;
-  --accent: #403725;
-  --accent-foreground: #ebce9b;
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
   --success: oklch(0.696 0.17 162.48);
@@ -211,19 +175,16 @@ For commercial licensing, please contact support@quantumnous.com
   --info-foreground: oklch(0.145 0 0);
   --neutral: oklch(0.76 0 0);
   --neutral-foreground: oklch(0.155 0 0);
-  --border: #45453b;
-  --input: #58564a;
-  --ring: #d9b26d;
-  --chart-1: #d9ad5f;
+  --chart-1: var(--delivery-highlight);
   --chart-2: oklch(0.76 0.13 200);
   --chart-3: oklch(0.76 0.13 285);
   --chart-4: oklch(0.75 0.16 325);
   --chart-5: oklch(0.76 0.14 155);
-  --sidebar: #20201b;
+  --sidebar: var(--background);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #403725;
+  --sidebar-accent: var(--accent);
   --sidebar-accent-foreground: var(--accent-foreground);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
@@ -253,12 +214,52 @@ For commercial licensing, please contact support@quantumnous.com
   );
 }
 
-body:not([data-theme-preset]) {
-  --action: #f5ce70;
-  --action-foreground: #382a16;
+/* The original homepage palette is also the site default. Public pages
+ * keep it when a signed-in user selects a different console preset. */
+:root,
+.delivery-public,
+body:has(#root .delivery-public) [data-base-ui-portal],
+body:has(#root .delivery-public) [data-sonner-toaster] {
+  --background: #faf9f6;
+  --foreground: #272822;
+  --card: #fffefa;
+  --card-foreground: #272822;
+  --popover: #fffefa;
+  --popover-foreground: #272822;
+  --primary: #30312b;
+  --primary-foreground: #fffefa;
+  --secondary: #eeeae1;
+  --secondary-foreground: #34352e;
+  --muted: #eeeae1;
+  --muted-foreground: #737168;
+  --accent: #f2e7d1;
+  --accent-foreground: #6f4918;
+  --border: #dcd8cf;
+  --input: #cec8bb;
+  --ring: #aa701f;
+  --delivery-highlight: #9b631b;
 }
 
-.dark body:not([data-theme-preset]) {
-  --action: #e7c47c;
-  --action-foreground: #28231a;
+.dark,
+.dark .delivery-public,
+.dark body:has(#root .delivery-public) [data-base-ui-portal],
+.dark body:has(#root .delivery-public) [data-sonner-toaster] {
+  --background: #191a17;
+  --foreground: #f0ede5;
+  --card: #22231f;
+  --card-foreground: #f0ede5;
+  --popover: #292a25;
+  --popover-foreground: #f0ede5;
+  --primary: #dfc69a;
+  --primary-foreground: #24231d;
+  --secondary: #30312a;
+  --secondary-foreground: #f0ede5;
+  --muted: #30312a;
+  --muted-foreground: #b3afa3;
+  --accent: #403725;
+  --accent-foreground: #ebce9b;
+  --border: #45453b;
+  --input: #58564a;
+  --ring: #d9b26d;
+  --delivery-highlight: #e0bc7c;
 }

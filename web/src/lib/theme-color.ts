@@ -16,21 +16,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useState } from 'react'
+import { type RefObject, useEffect, useState } from 'react'
 
 /**
  * Resolve a theme color token (e.g. `--foreground`) to an `rgba()` string a
- * canvas chart can draw with. The token is read from `<body>` so theme preset
- * overrides apply, and normalized through a canvas because tokens are written
+ * canvas chart can draw with. Read from the chart scope or the body to respect
+ * the active palette, and normalize through a canvas because tokens are written
  * as `oklch()` / `color-mix()`, which chart libraries do not parse.
  */
-export function resolveThemeColor(cssVariable: string): string | undefined {
+export function resolveThemeColor(
+  cssVariable: string,
+  scope?: HTMLElement
+): string | undefined {
   if (typeof document === 'undefined') return undefined
 
   const probe = document.createElement('div')
   probe.style.color = `var(${cssVariable})`
   probe.style.display = 'none'
-  document.body.appendChild(probe)
+  const parent = scope ?? document.body
+  parent.appendChild(probe)
   const computedColor = getComputedStyle(probe).color
   probe.remove()
   if (!computedColor) return undefined
@@ -48,11 +52,15 @@ export function resolveThemeColor(cssVariable: string): string | undefined {
  * preset attribute on `<body>` are applied by provider effects that run after
  * this hook's, so the color is re-resolved when either attribute changes.
  */
-export function useThemeColor(cssVariable: string): string | undefined {
+export function useThemeColor(
+  cssVariable: string,
+  scope?: RefObject<HTMLElement | null>
+): string | undefined {
   const [color, setColor] = useState<string | undefined>()
 
   useEffect(() => {
-    const update = () => setColor(resolveThemeColor(cssVariable))
+    const update = () =>
+      setColor(resolveThemeColor(cssVariable, scope?.current ?? undefined))
     update()
 
     const observer = new MutationObserver(update)
@@ -65,7 +73,7 @@ export function useThemeColor(cssVariable: string): string | undefined {
       attributeFilter: ['data-theme-preset'],
     })
     return () => observer.disconnect()
-  }, [cssVariable])
+  }, [cssVariable, scope])
 
   return color
 }

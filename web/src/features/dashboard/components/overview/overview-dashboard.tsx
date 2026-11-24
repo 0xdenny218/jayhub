@@ -49,7 +49,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
-import type { ApiKey } from '@/features/keys/types'
+import { API_KEY_STATUS } from '@/features/keys/constants'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { getUserModels } from '@/lib/api'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -160,10 +160,6 @@ function normalizeEndpoint(sourceUrl?: string): string {
   return `${withoutTrailingSlash}/v1/chat/completions`
 }
 
-function getPreferredKey(keys: ApiKey[]): ApiKey | null {
-  return keys.find((item) => item.status === 1) ?? keys[0] ?? null
-}
-
 function formatDisplayKey(key?: string): string {
   if (!key) return 'sk-...'
   if (key.length <= 14) return key
@@ -188,7 +184,7 @@ function SetupGuideBackdrop(props: { compact?: boolean }) {
     <>
       <div
         className={cn(
-          'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_48%_120%_at_78%_0%,color-mix(in_oklch,var(--overview-accent-1)_14%,transparent)_0%,transparent_62%),linear-gradient(112deg,color-mix(in_oklch,var(--card)_94%,var(--overview-accent-2)_6%)_0%,color-mix(in_oklch,var(--card)_94%,var(--overview-accent-3)_6%)_48%,color-mix(in_oklch,var(--background)_90%,var(--overview-accent-1)_10%)_100%)] dark:opacity-60',
+          'pointer-events-none absolute inset-0 bg-linear-to-br from-card via-background to-accent dark:opacity-60',
           props.compact
             ? '[mask-image:linear-gradient(90deg,black_0%,black_48%,transparent_74%)] opacity-55'
             : 'opacity-85'
@@ -340,7 +336,7 @@ function RequestPreview(props: {
 
       <div className='flex items-center justify-between gap-3 border-b pb-3'>
         <div className='flex min-w-0 items-center gap-2'>
-          <IconBadge tone='info'>
+          <IconBadge>
             <TerminalSquare />
           </IconBadge>
           <div className='min-w-0'>
@@ -348,18 +344,18 @@ function RequestPreview(props: {
               {t('First API request')}
             </div>
             <div className='text-muted-foreground truncate text-xs'>
-              {props.example.ready
+              {props.example.keyId
                 ? props.example.keyName
                 : t('Create an API key to unlock the real request')}
             </div>
           </div>
         </div>
-        {props.example.ready ? (
+        {props.example.keyId ? (
           <Button
             variant='outline'
             size='sm'
             className='h-7 gap-1.5 px-2 text-xs'
-            disabled={isCopying}
+            disabled={isCopying || !props.example.ready}
             onClick={handleCopyRequest}
             aria-label={t('Copy ready-to-run curl')}
           >
@@ -482,10 +478,17 @@ export function OverviewDashboard() {
   const isAdmin = Boolean(user?.role && user.role >= ROLE.ADMIN)
 
   const apiKeysQuery = useQuery({
-    queryKey: ['dashboard', 'overview', 'api-keys'],
+    queryKey: ['dashboard', 'overview', 'active-api-key', user?.id],
     queryFn: async () => {
-      const result = requireServerSuccess(await getApiKeys({ p: 1, size: 10 }))
-      return result.success ? (result.data?.items ?? []) : []
+      const size = 100
+      for (let p = 1; ; p++) {
+        const { data } = requireServerSuccess(await getApiKeys({ p, size }))
+        const key = data?.items.find(
+          (item) => item.status === API_KEY_STATUS.ENABLED
+        )
+        if (key) return key
+        if (!data?.items.length || p * size >= data.total) return null
+      }
     },
     staleTime: 60 * 1000,
   })
@@ -499,10 +502,7 @@ export function OverviewDashboard() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const preferredKey = useMemo(
-    () => getPreferredKey(apiKeysQuery.data ?? []),
-    [apiKeysQuery.data]
-  )
+  const preferredKey = apiKeysQuery.data
 
   const startSteps = useMemo<StartStep[]>(
     () => [
@@ -567,39 +567,46 @@ export function OverviewDashboard() {
     [isAdmin, quickActions]
   )
 
-  const heroSignals = useMemo<HeroSignal[]>(
-    () => [
-      {
-        label: t('Route active'),
-        value: apiInfoItems.length > 0 ? t('Online') : t('Current domain'),
-        icon: RadioTower,
-        tone: 'info',
-      },
-      {
-        label: t('Auth configured'),
-        value: preferredKey ? t('Secured') : t('Needs API key'),
-        icon: ShieldCheck,
-        tone: 'success',
-      },
-      {
-        label: t('Model selected'),
-        value: modelsQuery.data?.[0] ?? t('Loading'),
-        icon: Timer,
-        tone: 'chart-4',
-      },
-    ],
-    [apiInfoItems.length, modelsQuery.data, preferredKey, t]
-  )
+  let authSignal: Pick<HeroSignal, 'value' | 'tone'>
+  if (apiKeysQuery.isPending) {
+    authSignal = { value: t('Loading'), tone: 'neutral' }
+  } else if (apiKeysQuery.isError) {
+    authSignal = { value: t('Unavailable'), tone: 'destructive' }
+  } else if (preferredKey) {
+    authSignal = { value: t('Secured'), tone: 'success' }
+  } else {
+    authSignal = { value: t('Needs API key'), tone: 'warning' }
+  }
+
+  let modelValue = modelsQuery.data?.[0] ?? t('No models available')
+  if (modelsQuery.isPending) modelValue = t('Loading')
+  if (modelsQuery.isError) modelValue = t('Unavailable')
+
+  const heroSignals: HeroSignal[] = [
+    {
+      label: t('Route active'),
+      value: apiInfoItems.length > 0 ? t('Online') : t('Current domain'),
+      icon: RadioTower,
+      tone: 'neutral',
+    },
+    { label: t('Auth configured'), icon: ShieldCheck, ...authSignal },
+    {
+      label: t('Model selected'),
+      value: modelValue,
+      icon: Timer,
+      tone: modelsQuery.isError ? 'destructive' : 'neutral',
+    },
+  ]
 
   const requestExample = useMemo<RequestExample>(() => {
     const endpoint = normalizeEndpoint(apiInfoItems[0]?.url)
-    const model = modelsQuery.data?.[0] ?? 'gpt-4o-mini'
+    const model = modelsQuery.data?.[0]
     const keyName = preferredKey?.name ?? t('No API key yet')
     const ready = Boolean(preferredKey?.id && model)
 
     return {
       endpoint,
-      model,
+      model: model ?? 'MODEL_ID',
       keyName,
       keyId: preferredKey?.id,
       displayKey: preferredKey
@@ -739,8 +746,8 @@ export function OverviewDashboard() {
                   <div className='relative flex flex-wrap items-center justify-between gap-3'>
                     <div className='flex min-w-0 items-center gap-3'>
                       <span className='bg-background/70 flex size-9 shrink-0 items-center justify-center rounded-xl border shadow-xs'>
-                        <Check
-                          className='text-success size-4'
+                        <ListChecks
+                          className='text-muted-foreground size-4'
                           aria-hidden='true'
                         />
                       </span>
