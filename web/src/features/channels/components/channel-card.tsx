@@ -81,6 +81,7 @@ function ChannelCardComponent({
   // power toggle, so the plain "Enabled"/"Disabled" badge is redundant. Keep
   // only the informative states (e.g. auto-disabled, unknown) and tag rows.
   const showStatusBadge =
+    !actionsCell ||
     isTagRow ||
     (row.original.status !== CHANNEL_STATUS.ENABLED &&
       row.original.status !== CHANNEL_STATUS.MANUAL_DISABLED)

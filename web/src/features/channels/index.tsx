@@ -28,6 +28,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useStatus } from '@/hooks/use-status'
 import { ROLE } from '@/lib/roles'
 import { requireServerSuccess } from '@/lib/server-error-message'
 import { useAuthStore } from '@/stores/auth-store'
@@ -40,6 +41,7 @@ import { ChannelsTable } from './components/channels-table'
 
 export function Channels() {
   const { t } = useTranslation()
+  const { channelManagementEnabled } = useStatus()
   const isRoot = useAuthStore(
     (state) => state.auth.user?.role === ROLE.SUPER_ADMIN
   )
@@ -54,43 +56,47 @@ export function Channels() {
     typeof retryTimes === 'number' ? `${t('Max Retries')}: ${retryTimes}` : null
   let retryBadge = null
   if (retryLabel) {
-    retryBadge = isRoot ? (
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Badge
-              variant='outline'
-              className='shrink-0 cursor-pointer'
-              aria-label={t('Retry Settings')}
-              render={
-                <Link
-                  to='/system-settings/request-policies/$section'
-                  params={{ section: 'routing' }}
-                />
-              }
-            />
-          }
-        >
-          <span>{retryLabel}</span>
-          <Settings2 data-icon='inline-end' />
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{t('Retry Settings')}</p>
-        </TooltipContent>
-      </Tooltip>
-    ) : (
-      <Badge variant='outline' className='shrink-0'>
-        {retryLabel}
-      </Badge>
-    )
+    retryBadge =
+      isRoot && channelManagementEnabled ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Badge
+                variant='outline'
+                className='shrink-0 cursor-pointer'
+                aria-label={t('Retry Settings')}
+                render={
+                  <Link
+                    to='/system-settings/request-policies/$section'
+                    params={{ section: 'routing' }}
+                  />
+                }
+              />
+            }
+          >
+            <span>{retryLabel}</span>
+            <Settings2 data-icon='inline-end' />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{t('Retry Settings')}</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <Badge variant='outline' className='shrink-0'>
+          {retryLabel}
+        </Badge>
+      )
   }
 
   return (
-    <ChannelsProvider>
+    <ChannelsProvider readOnly={!channelManagementEnabled}>
       <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>
           <span className='flex min-w-0 items-center gap-2'>
             <span className='truncate'>{t('Channels')}</span>
+            {!channelManagementEnabled && (
+              <Badge variant='secondary'>{t('Read-only')}</Badge>
+            )}
             {retryBadge}
           </span>
         </SectionPageLayout.Title>
@@ -102,7 +108,7 @@ export function Channels() {
         </SectionPageLayout.Content>
       </SectionPageLayout>
 
-      <ChannelsDialogs />
+      {channelManagementEnabled && <ChannelsDialogs />}
     </ChannelsProvider>
   )
 }

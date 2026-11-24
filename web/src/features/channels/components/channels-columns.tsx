@@ -52,7 +52,7 @@ import {
   formatQuotaWithCurrency,
   getCurrencyLabel,
 } from '@/lib/currency'
-import { formatTimestampToDate } from '@/lib/format'
+import { formatNumber, formatTimestampToDate } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
 import {
   createServerError,
@@ -130,7 +130,7 @@ function parseIonetMeta(otherInfo: string | null | undefined): null | {
  * Upstream update tags (+N / -N) shown on channel name for model-fetchable channels
  */
 function UpstreamUpdateTags({ channel }: { channel: Channel }) {
-  const { upstream, setCurrentRow } = useChannels()
+  const { readOnly, upstream, setCurrentRow } = useChannels()
   const modelFetchable = useChannelModelFetchable(channel)
   if (!modelFetchable) {
     return null
@@ -147,6 +147,17 @@ function UpstreamUpdateTags({ channel }: { channel: Channel }) {
     return null
   }
 
+  const openUpdates = (event: React.MouseEvent, tab: 'add' | 'remove') => {
+    event.stopPropagation()
+    setCurrentRow(channel)
+    upstream.openModal(
+      channel,
+      meta.pendingAddModels,
+      meta.pendingRemoveModels,
+      tab
+    )
+  }
+
   return (
     <div className='flex items-center gap-0.5'>
       {addCount > 0 && (
@@ -155,17 +166,8 @@ function UpstreamUpdateTags({ channel }: { channel: Channel }) {
           variant='success'
           size='sm'
           copyable={false}
-          className='cursor-pointer'
-          onClick={(e: React.MouseEvent) => {
-            e.stopPropagation()
-            setCurrentRow(channel)
-            upstream.openModal(
-              channel,
-              meta.pendingAddModels,
-              meta.pendingRemoveModels,
-              'add'
-            )
-          }}
+          className={readOnly ? undefined : 'cursor-pointer'}
+          onClick={readOnly ? undefined : (event) => openUpdates(event, 'add')}
         />
       )}
       {removeCount > 0 && (
@@ -174,17 +176,10 @@ function UpstreamUpdateTags({ channel }: { channel: Channel }) {
           variant='danger'
           size='sm'
           copyable={false}
-          className='cursor-pointer'
-          onClick={(e: React.MouseEvent) => {
-            e.stopPropagation()
-            setCurrentRow(channel)
-            upstream.openModal(
-              channel,
-              meta.pendingAddModels,
-              meta.pendingRemoveModels,
-              'remove'
-            )
-          }}
+          className={readOnly ? undefined : 'cursor-pointer'}
+          onClick={
+            readOnly ? undefined : (event) => openUpdates(event, 'remove')
+          }
         />
       )}
     </div>
@@ -351,7 +346,7 @@ export function BalanceCell({ channel }: { channel: Channel }) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const layout = useContext(ChannelRowActionsLayoutContext)
-  const { sensitiveVisible, setCurrentRow, setOpen } = useChannels()
+  const { readOnly, sensitiveVisible, setCurrentRow, setOpen } = useChannels()
   const isTagRow = isTagAggregateRow(channel)
   const balance = channel.balance || 0
   const usedQuota = channel.used_quota || 0
@@ -533,17 +528,17 @@ export function BalanceCell({ channel }: { channel: Channel }) {
   let remainingBadgeLabel = sensitiveVisible ? remainingDisplay : SENSITIVE_MASK
   if (sensitiveVisible && isUpdating) {
     remainingBadgeLabel = t('Updating...')
-  } else if (sensitiveVisible && channel.type === 57) {
+  } else if (sensitiveVisible && !readOnly && channel.type === 57) {
     remainingBadgeLabel = t('Account Info')
-  } else if (sensitiveVisible && isInferenceChannel) {
+  } else if (sensitiveVisible && !readOnly && isInferenceChannel) {
     remainingBadgeLabel = inferenceStatusLabel
   }
   let remainingTooltipLabel = remainingLabel
   if (!sensitiveVisible) {
     remainingTooltipLabel = maskedRemainingLabel
-  } else if (channel.type === 57) {
+  } else if (!readOnly && channel.type === 57) {
     remainingTooltipLabel = t('Click to view Codex usage')
-  } else if (isInferenceChannel) {
+  } else if (!readOnly && isInferenceChannel) {
     remainingTooltipLabel = inferenceStatusLabel
   }
   let remainingBadgeVariant: StatusBadgeProps['variant'] = variant
@@ -558,7 +553,7 @@ export function BalanceCell({ channel }: { channel: Channel }) {
     if (usedPercent >= 70) remainingBadgeVariant = 'warning'
     if (usedPercent >= 90) remainingBadgeVariant = 'danger'
   }
-  const balanceClickable = !isInferenceChannel && balanceQueryable
+  const balanceClickable = !readOnly && !isInferenceChannel && balanceQueryable
   const remainingBadge = (
     <StatusBadge
       label={remainingBadgeLabel}
@@ -596,7 +591,7 @@ export function BalanceCell({ channel }: { channel: Channel }) {
         <Tooltip>
           <TooltipTrigger
             render={
-              isInferenceChannel ? (
+              isInferenceChannel && !readOnly ? (
                 <Button
                   variant='ghost'
                   size='sm'
@@ -613,7 +608,7 @@ export function BalanceCell({ channel }: { channel: Channel }) {
           />
           <TooltipContent className='flex-col items-start'>
             <p>{remainingTooltipLabel}</p>
-            {sensitiveVisible && balanceQueryHint && (
+            {sensitiveVisible && (balanceQueryHint || readOnly) && (
               <ChannelBalanceDetails
                 result={detail}
                 updatedTime={channel.balance_updated_time}
@@ -625,7 +620,7 @@ export function BalanceCell({ channel }: { channel: Channel }) {
       </div>
 
       <CodexUsageDialog
-        open={codexUsageOpen}
+        open={!readOnly && codexUsageOpen}
         onOpenChange={setCodexUsageOpen}
         channelName={channel.name}
         channelId={channel.id}
@@ -651,7 +646,7 @@ export function BalanceCell({ channel }: { channel: Channel }) {
         }}
         isRefreshing={isUpdating}
       />
-      {rawBalanceResponse !== null && (
+      {!readOnly && rawBalanceResponse !== null && (
         <BalanceQueryDialog
           initialRawResponse={rawBalanceResponse}
           open
@@ -675,8 +670,8 @@ export function useChannelsColumns(
   } = {}
 ): ColumnDef<Channel>[] {
   const { t, i18n } = useTranslation()
-  const { sensitiveVisible } = useChannels()
-  const enableSelection = options.enableSelection ?? true
+  const { readOnly, sensitiveVisible } = useChannels()
+  const enableSelection = !readOnly && (options.enableSelection ?? true)
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   // The column definitions only depend on the translation function, the active
   // locale, and sensitive-data visibility. Memoizing keeps the array (and every
@@ -1209,7 +1204,14 @@ export function useChannelsColumns(
         accessorKey: 'priority',
         header: t('Priority'),
         meta: { mobileHidden: true },
-        cell: ({ row }) => <PriorityCell channel={row.original} />,
+        cell: ({ row }) =>
+          readOnly ? (
+            <span className='text-sm tabular-nums'>
+              {formatNumber(row.original.priority ?? 0, locale)}
+            </span>
+          ) : (
+            <PriorityCell channel={row.original} />
+          ),
         size: 100,
       },
 
@@ -1218,7 +1220,14 @@ export function useChannelsColumns(
         accessorKey: 'weight',
         header: t('Weight'),
         meta: { mobileHidden: true },
-        cell: ({ row }) => <WeightCell channel={row.original} />,
+        cell: ({ row }) =>
+          readOnly ? (
+            <span className='text-sm tabular-nums'>
+              {formatNumber(row.original.weight ?? 0, locale)}
+            </span>
+          ) : (
+            <WeightCell channel={row.original} />
+          ),
         size: 90,
         enableSorting: false,
       },
@@ -1296,29 +1305,33 @@ export function useChannelsColumns(
       },
 
       // Actions column
-      {
-        id: 'actions',
-        header: () => t('Actions'),
-        cell: ({ row }) => {
-          // Check if this is a tag row (has children)
-          const isTagRow = isTagAggregateRow(row.original)
+      ...(!readOnly
+        ? [
+            {
+              id: 'actions',
+              header: () => t('Actions'),
+              cell: ({ row }) => {
+                // Check if this is a tag row (has children)
+                const isTagRow = isTagAggregateRow(row.original)
 
-          if (isTagRow) {
-            return (
-              <DataTableTagRowActions
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                row={row as any}
-              />
-            )
-          }
+                if (isTagRow) {
+                  return (
+                    <DataTableTagRowActions
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      row={row as any}
+                    />
+                  )
+                }
 
-          return <DataTableRowActions row={row} />
-        },
-        enableSorting: false,
-        enableHiding: false,
-        meta: { pinned: 'right' as const },
-      },
+                return <DataTableRowActions row={row} />
+              },
+              enableSorting: false,
+              enableHiding: false,
+              meta: { pinned: 'right' as const },
+            } satisfies ColumnDef<Channel>,
+          ]
+        : []),
     ],
-    [enableSelection, t, locale, sensitiveVisible]
+    [enableSelection, readOnly, t, locale, sensitiveVisible]
   )
 }

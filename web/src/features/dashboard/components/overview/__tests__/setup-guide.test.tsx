@@ -37,7 +37,6 @@ import { OverviewDashboard } from '../overview-dashboard'
 const storageKey = 'dashboard_overview_setup_guide_expanded'
 let client: QueryClient
 let keyLookupError: Error | null
-let channelManagementEnabled: boolean | undefined
 
 beforeEach(() => {
   window.localStorage.clear()
@@ -54,7 +53,6 @@ beforeEach(() => {
     defaultOptions: { queries: { retry: false } },
   })
   keyLookupError = null
-  channelManagementEnabled = undefined
   vi.spyOn(api, 'get').mockImplementation(async (url) => {
     switch (url) {
       case '/api/token/?p=1&size=10':
@@ -75,7 +73,7 @@ beforeEach(() => {
               announcements_enabled: false,
               faq_enabled: false,
               uptime_kuma_enabled: false,
-              channel_management_enabled: channelManagementEnabled,
+              channel_management_enabled: false,
             },
           },
         }
@@ -161,31 +159,18 @@ describe('overview setup guide', () => {
     expect(toggle).toHaveFocus()
   })
 
-  it.each([undefined, false, true])(
-    'respects the channel management switch in the admin guide (%s)',
-    async (enabled) => {
-      channelManagementEnabled = enabled
-      const user = userEvent.setup()
-      const { auth } = useAuthStore.getState()
-      if (!auth.user) throw new Error('Expected the dashboard user fixture')
-      auth.setUser({ ...auth.user, role: ROLE.SUPER_ADMIN })
-      await renderOverview()
+  it('shows the admin channel shortcut when channel management is read-only', async () => {
+    const user = userEvent.setup()
+    const { auth } = useAuthStore.getState()
+    if (!auth.user) throw new Error('Expected the dashboard user fixture')
+    auth.setUser({ ...auth.user, role: ROLE.SUPER_ADMIN })
+    await renderOverview()
 
-      await user.click(
-        await screen.findByRole('button', { name: 'Setup guide' })
-      )
-      expect(screen.getByRole('button', { name: /^API Keys/ })).toBeVisible()
-      if (enabled) {
-        expect(
-          await screen.findByRole('button', { name: /^Channels/ })
-        ).toBeVisible()
-      } else {
-        expect(
-          screen.queryByRole('button', { name: /^Channels/ })
-        ).not.toBeInTheDocument()
-      }
-    }
-  )
+    await user.click(await screen.findByRole('button', { name: 'Setup guide' }))
+    expect(
+      await screen.findByRole('button', { name: /^Channels/ })
+    ).toBeVisible()
+  })
 
   it('restores the completed guide preference after remounting', async () => {
     const user = userEvent.setup()

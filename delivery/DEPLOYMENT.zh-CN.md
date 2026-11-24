@@ -63,7 +63,7 @@ curl -fsS http://127.0.0.1:3000/api/status
 
 ## 4. 初始化与业务验收
 
-渠道管理默认关闭。需要通过控制台维护时，在 `deploy.env` 中设置 `CHANNEL_MANAGEMENT_ENABLED=true`，再执行 `dc up -d --no-build --no-deps app`，用现有镜像重建应用容器以应用环境变量。直接运行二进制的实例可在应用的 `.env` 中设置该变量，再重启进程。刷新控制台后，页面入口按 `/api/status` 中的 `channel_management_enabled` 显示，管理接口按同一开关和原有权限放行。
+控制台默认提供只读渠道页面，管理员可以查看渠道状态和配置摘要。需要通过控制台维护时，在 `deploy.env` 中设置 `CHANNEL_MANAGEMENT_ENABLED=true`，再执行 `dc up -d --no-build --no-deps app`，用现有镜像重建应用容器以应用环境变量。直接运行二进制的实例可在应用的 `.env` 中设置该变量，再重启进程。刷新控制台后，页面按 `/api/status` 中的 `channel_management_enabled` 显示管理操作，管理接口按同一开关和原有权限放行。
 
 1. 打开站点域名，按初始化向导创建甲方自己的管理员账号，选择「对外运营」模式。
 2. 在「系统设置 → 站点」填写甲方对外地址并核对站名、Logo。使用需要生成任务产物链接的图片或视频渠道时，核对任务公开地址，使终端用户能够从公网取回结果。

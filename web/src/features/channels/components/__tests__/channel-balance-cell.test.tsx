@@ -58,10 +58,13 @@ function pluginChannel(
   })
 }
 
-function renderCell(channel: ReturnType<typeof pluginChannel>) {
+function renderCell(
+  channel: ReturnType<typeof pluginChannel>,
+  readOnly = false
+) {
   return render(
     <QueryClientProvider client={client}>
-      <ChannelsProvider>
+      <ChannelsProvider readOnly={readOnly}>
         <BalanceCell channel={channel} />
       </ChannelsProvider>
     </QueryClientProvider>
@@ -183,6 +186,26 @@ test('a plugin channel whose plugin cannot query a balance shows none and offers
   })
   expect(tooltip).toHaveTextContent(/-$/)
   expect(tooltip).not.toHaveTextContent('Click to update balance')
+  await user.click(badge)
+  expect(api.get).not.toHaveBeenCalledWith('/api/channel/update_balance/5')
+})
+
+test('a read-only channel shows the saved balance without offering an upstream refresh', async () => {
+  const user = userEvent.setup()
+  renderCell(
+    pluginChannel('with-balance', {
+      amount: 42,
+      currency: 'CNY',
+      unlimited: false,
+      windows: [],
+    }),
+    true
+  )
+
+  const badge = await screen.findByText('CN¥42')
+  await user.hover(badge)
+  expect(await screen.findByText(/^Last updated:/)).toBeVisible()
+  expect(screen.queryByText('Click to update balance')).not.toBeInTheDocument()
   await user.click(badge)
   expect(api.get).not.toHaveBeenCalledWith('/api/channel/update_balance/5')
 })

@@ -76,6 +76,7 @@ export function ChannelsPrimaryButtons() {
   const { t } = useTranslation()
   const navigate = route.useNavigate()
   const {
+    readOnly,
     setOpen,
     setCurrentRow,
     enableTagMode,
@@ -107,6 +108,50 @@ export function ChannelsPrimaryButtons() {
     setBatchMode(checked)
   }
 
+  const tagModeControl = (
+    <div className='text-muted-foreground has-data-checked:text-foreground flex items-center gap-2'>
+      <Label
+        htmlFor='tag-mode'
+        className='cursor-pointer gap-1.5 text-xs whitespace-nowrap'
+      >
+        <Tags className='size-3.5' aria-hidden />
+        {t('Tag Mode')}
+      </Label>
+      <Switch
+        id='tag-mode'
+        size='sm'
+        checked={enableTagMode}
+        onCheckedChange={handleTagModeToggle}
+      />
+    </div>
+  )
+
+  const sortControl = (
+    <ChannelSortControl
+      field={(sorting[0]?.id ?? 'priority') as ChannelSortBy}
+      desc={sorting[0]?.desc ?? true}
+      onChange={(field, desc) => {
+        setSorting([{ id: field, desc }])
+        void navigate({
+          search: (previous) => ({ ...previous, page: 1 }),
+          replace: true,
+        })
+      }}
+    />
+  )
+
+  if (readOnly) {
+    return (
+      <div className='flex flex-wrap items-center gap-2'>
+        <NodeSyncIndicator topics={['channels']} />
+        <div className='bg-muted/40 flex h-8 shrink-0 items-center rounded-lg border px-2.5'>
+          {tagModeControl}
+        </div>
+        {sortControl}
+      </div>
+    )
+  }
+
   return (
     <>
       <div className='flex flex-wrap items-center gap-2'>
@@ -130,34 +175,10 @@ export function ChannelsPrimaryButtons() {
             />
           </div>
           <Separator orientation='vertical' className='my-2' />
-          <div className='text-muted-foreground has-data-checked:text-foreground flex items-center gap-2'>
-            <Label
-              htmlFor='tag-mode'
-              className='cursor-pointer gap-1.5 text-xs whitespace-nowrap'
-            >
-              <Tags className='size-3.5' aria-hidden />
-              {t('Tag Mode')}
-            </Label>
-            <Switch
-              id='tag-mode'
-              size='sm'
-              checked={enableTagMode}
-              onCheckedChange={handleTagModeToggle}
-            />
-          </div>
+          {tagModeControl}
         </div>
 
-        <ChannelSortControl
-          field={(sorting[0]?.id ?? 'priority') as ChannelSortBy}
-          desc={sorting[0]?.desc ?? true}
-          onChange={(field, desc) => {
-            setSorting([{ id: field, desc }])
-            void navigate({
-              search: (previous) => ({ ...previous, page: 1 }),
-              replace: true,
-            })
-          }}
-        />
+        {sortControl}
 
         {/* Create Channel */}
         <Tooltip>
