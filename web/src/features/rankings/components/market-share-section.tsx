@@ -18,9 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { VChart } from '@visactor/react-vchart'
 import { PieChart } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useThemeColor } from '@/lib/theme-color'
 import { useChartTheme } from '@/lib/use-chart-theme'
 import { VCHART_OPTION } from '@/lib/vchart'
 
@@ -103,14 +104,9 @@ type MarketShareSectionProps = {
 export function MarketShareSection(props: MarketShareSectionProps) {
   const { t } = useTranslation()
   const { resolvedTheme, themeReady } = useChartTheme()
-  const chartTextColor =
-    resolvedTheme === 'dark'
-      ? 'rgba(255, 255, 255, 0.68)'
-      : 'rgba(15, 23, 42, 0.58)'
-  const chartGridColor =
-    resolvedTheme === 'dark'
-      ? 'rgba(255, 255, 255, 0.12)'
-      : 'rgba(15, 23, 42, 0.12)'
+  const chartScope = useRef<HTMLElement>(null)
+  const chartTextColor = useThemeColor('--muted-foreground', chartScope)
+  const chartGridColor = useThemeColor('--border', chartScope)
 
   const colourMap = useMemo(
     () => buildVendorColourMap(props.history.vendors.map((v) => v.name)),
@@ -212,7 +208,10 @@ export function MarketShareSection(props: MarketShareSectionProps) {
   const right = visible.slice(half)
 
   return (
-    <section className='bg-card overflow-hidden rounded-lg border'>
+    <section
+      ref={chartScope}
+      className='bg-card overflow-hidden rounded-lg border'
+    >
       {/* Chart block ----------------------------------------------------- */}
       <header className='px-5 py-4'>
         <h2 className='text-foreground inline-flex items-center gap-2 text-base font-semibold'>
@@ -237,7 +236,7 @@ export function MarketShareSection(props: MarketShareSectionProps) {
               option={VCHART_OPTION}
             />
           ) : (
-            <div className='text-muted-foreground/80 flex h-full items-center justify-center text-xs'>
+            <div className='text-muted-foreground flex h-full items-center justify-center text-xs'>
               {t('No history data available')}
             </div>
           )}
@@ -250,12 +249,12 @@ export function MarketShareSection(props: MarketShareSectionProps) {
           <h3 className='text-foreground text-sm font-semibold'>
             {t('By model author')}
           </h3>
-          <p className='text-muted-foreground/80 mt-0.5 text-xs'>
+          <p className='text-muted-foreground mt-0.5 text-xs'>
             {t('Vendors ranked by aggregated token volume')}
           </p>
         </header>
         {visible.length === 0 ? (
-          <div className='text-muted-foreground/80 px-5 py-8 text-center text-sm'>
+          <div className='text-muted-foreground px-5 py-8 text-center text-sm'>
             {t('No vendor data available')}
           </div>
         ) : (
@@ -279,7 +278,7 @@ function VendorList(props: {
     <ul>
       {props.rows.map((vendor) => (
         <li key={vendor.vendor} className='flex items-center gap-3 py-2.5'>
-          <span className='text-muted-foreground/80 w-6 shrink-0 text-right font-mono text-xs tabular-nums'>
+          <span className='text-muted-foreground w-6 shrink-0 text-right font-mono text-xs tabular-nums'>
             {vendor.rank}.
           </span>
           <span
@@ -299,7 +298,7 @@ function VendorList(props: {
             <div className='text-foreground font-mono text-sm font-semibold tabular-nums'>
               {formatTokens(vendor.total_tokens)}
             </div>
-            <div className='text-muted-foreground/80 font-mono text-[11px] tabular-nums'>
+            <div className='text-muted-foreground font-mono text-[11px] tabular-nums'>
               {formatShare(vendor.share)}
             </div>
           </div>

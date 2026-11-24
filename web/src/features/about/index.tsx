@@ -17,99 +17,180 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { Construction } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { ArrowRight, BookOpen, Layers, LayoutDashboard } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
 import { RichContent } from '@/components/rich-content'
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemHeader,
+  ItemTitle,
+} from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useSystemConfig } from '@/hooks/use-system-config'
+import { useTopNavLinks } from '@/hooks/use-top-nav-links'
 import { isHttpUrl, isLikelyHtml } from '@/lib/content-format'
 import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getAboutContent } from './api'
 
-function EmptyAboutState() {
+import '@/styles/delivery-public.css'
+
+function DefaultAbout() {
   const { t } = useTranslation()
+  const { systemName, logo } = useSystemConfig()
+  const links = useTopNavLinks()
+  const resources = [
+    {
+      to: '/pricing',
+      title: t('Model Square'),
+      description: t(
+        'Compare model capabilities, supported endpoints, and pricing.'
+      ),
+      icon: Layers,
+    },
+    {
+      to: '/docs',
+      title: t('Developer docs'),
+      description: t(
+        'Create an API key and send your first request with a working example.'
+      ),
+      icon: BookOpen,
+    },
+    {
+      to: '/dashboard',
+      title: t('Console'),
+      description: t(
+        'Manage your keys, check your balance, and review request history.'
+      ),
+      icon: LayoutDashboard,
+    },
+  ] as const
+  const visibleResources = resources.filter((resource) =>
+    links.some((link) => link.href === resource.to)
+  )
   const currentYear = new Date().getFullYear()
 
   return (
-    <div className='flex min-h-[60vh] items-center justify-center p-8'>
-      <div className='max-w-2xl space-y-6 text-center'>
-        <div className='flex justify-center'>
-          <Construction className='text-muted-foreground h-24 w-24' />
-        </div>
-        <div className='space-y-2'>
-          <h2 className='text-2xl font-bold'>{t('No About Content Set')}</h2>
-          <p className='text-muted-foreground'>
-            {t(
-              'The administrator has not configured any about content yet. You can set it in the settings page, supporting HTML or URL.'
-            )}
-          </p>
-        </div>
-        <div className='space-y-4 text-sm'>
-          <p>
-            {t('New API Project Repository:')}{' '}
-            <a
-              href='https://github.com/QuantumNous/new-api'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-primary hover:underline'
+    <main className='mx-auto max-w-5xl px-5 pt-24 pb-16 sm:px-8 sm:pt-32'>
+      <section className='border-border border-b pb-9 sm:pb-12'>
+        <img
+          src={logo}
+          alt=''
+          width={64}
+          height={64}
+          className='mb-6 size-14 object-contain sm:size-16'
+        />
+        <h1 className='text-4xl font-semibold tracking-tight sm:text-6xl'>
+          {t('About {{name}}', { name: systemName })}
+        </h1>
+        <p className='text-muted-foreground mt-5 max-w-2xl text-lg leading-relaxed'>
+          {t(
+            'Access models from multiple providers with one API key. Send requests in OpenAI, Anthropic, or Gemini format and track usage across your application.'
+          )}
+        </p>
+      </section>
+      {visibleResources.length > 0 && (
+        <nav
+          aria-label={t('Platform resources')}
+          className='mt-8 grid gap-3 sm:grid-cols-[repeat(auto-fit,minmax(14rem,1fr))]'
+        >
+          {visibleResources.map(({ to, title, description, icon: Icon }) => (
+            <Item
+              key={to}
+              variant='outline'
+              render={<Link to={to} />}
+              className='bg-card items-start gap-4 rounded-xl p-5 hover:border-(--delivery-highlight)'
             >
-              {t('https://github.com/QuantumNous/new-api')}
-            </a>
-          </p>
-          <p className='text-muted-foreground'>
-            <a
-              href='https://github.com/QuantumNous/new-api'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-primary hover:underline'
-            >
-              {t('NewAPI')}
-            </a>{' '}
-            © {currentYear}{' '}
-            <a
-              href='https://github.com/QuantumNous'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-primary hover:underline'
-            >
-              {t('QuantumNous')}
-            </a>{' '}
-            {t('| Based on')}{' '}
-            <a
-              href='https://github.com/songquanpeng/one-api'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-primary hover:underline'
-            >
-              {t('One API')}
-            </a>{' '}
-            © 2023{' '}
-            <a
-              href='https://github.com/songquanpeng'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-primary hover:underline'
-            >
-              {t('JustSong')}
-            </a>
-          </p>
-          <p className='text-muted-foreground'>
-            {t('This project must be used in compliance with the')}{' '}
-            <a
-              href='https://github.com/QuantumNous/new-api/blob/main/LICENSE'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-primary hover:underline'
-            >
-              {t('AGPL v3.0 License')}
-            </a>
-            .
-          </p>
-        </div>
-      </div>
-    </div>
+              <ItemHeader>
+                <span className='bg-accent text-accent-foreground grid size-9 place-items-center rounded-lg'>
+                  <Icon className='size-4' aria-hidden='true' />
+                </span>
+                <ArrowRight
+                  className='text-muted-foreground size-4'
+                  aria-hidden='true'
+                />
+              </ItemHeader>
+              <ItemContent className='gap-1.5'>
+                <ItemTitle className='text-base font-semibold'>
+                  {title}
+                </ItemTitle>
+                <ItemDescription className='line-clamp-none'>
+                  {description}
+                </ItemDescription>
+              </ItemContent>
+            </Item>
+          ))}
+        </nav>
+      )}
+      <section className='border-border mt-12 space-y-2 border-t pt-6 text-sm'>
+        <h2 className='mb-3 text-lg font-semibold'>{t('Open source')}</h2>
+        <p>
+          {t('New API Project Repository:')}{' '}
+          <a
+            href='https://github.com/QuantumNous/new-api'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary hover:underline'
+          >
+            {t('https://github.com/QuantumNous/new-api')}
+          </a>
+        </p>
+        <p className='text-muted-foreground'>
+          <a
+            href='https://github.com/QuantumNous/new-api'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary hover:underline'
+          >
+            {t('NewAPI')}
+          </a>{' '}
+          © {currentYear}{' '}
+          <a
+            href='https://github.com/QuantumNous'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary hover:underline'
+          >
+            {t('QuantumNous')}
+          </a>{' '}
+          {t('| Based on')}{' '}
+          <a
+            href='https://github.com/songquanpeng/one-api'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary hover:underline'
+          >
+            {t('One API')}
+          </a>{' '}
+          © 2023{' '}
+          <a
+            href='https://github.com/songquanpeng'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary hover:underline'
+          >
+            {t('JustSong')}
+          </a>
+        </p>
+        <p className='text-muted-foreground'>
+          {t('This project must be used in compliance with the')}{' '}
+          <a
+            href='https://github.com/QuantumNous/new-api/blob/main/LICENSE'
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary hover:underline'
+          >
+            {t('AGPL v3.0 License')}
+          </a>
+          .
+        </p>
+      </section>
+    </main>
   )
 }
 
@@ -140,8 +221,8 @@ export function About() {
 
   if (!hasContent) {
     return (
-      <PublicLayout>
-        <EmptyAboutState />
+      <PublicLayout showMainContainer={false} className='delivery-public'>
+        <DefaultAbout />
       </PublicLayout>
     )
   }

@@ -96,7 +96,10 @@ function FilterChip(props: {
       size='sm'
       onClick={props.onClick}
       aria-pressed={props.active}
-      className='h-auto max-w-full gap-1.5 px-2 py-1 text-xs'
+      className={cn(
+        'h-auto max-w-full gap-1.5 px-2 py-1 text-xs',
+        props.active && 'bg-accent text-accent-foreground hover:bg-accent'
+      )}
       title={props.option.label}
     >
       {props.option.icon && (
