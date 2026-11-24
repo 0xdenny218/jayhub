@@ -38,6 +38,7 @@ const storageKey = 'dashboard_overview_setup_guide_expanded'
 let client: QueryClient
 let keyLookupError: Error | null
 let keyStatuses: number[]
+let models: string[]
 
 beforeEach(() => {
   window.localStorage.clear()
@@ -55,23 +56,30 @@ beforeEach(() => {
   })
   keyLookupError = null
   keyStatuses = [API_KEY_STATUS.ENABLED]
+  models = ['gpt-4o-mini']
   vi.spyOn(api, 'get').mockImplementation(async (url) => {
     switch (url) {
-      case '/api/token/?p=1&size=10':
+      case '/api/token/?p=1&size=100':
+      case '/api/token/?p=2&size=100': {
         if (keyLookupError) throw keyLookupError
+        const start = url.includes('p=2&') ? 100 : 0
         return {
           data: {
             success: true,
             data: {
-              items: keyStatuses.map((status, index) => ({
-                id: index + 1,
-                name: 'App key',
-                key: 'masked',
-                status,
-              })),
+              total: keyStatuses.length,
+              items: keyStatuses
+                .slice(start, start + 100)
+                .map((status, index) => ({
+                  id: start + index + 1,
+                  name: 'App key',
+                  key: 'masked',
+                  status,
+                })),
             },
           },
         }
+      }
       case '/api/status':
         return {
           data: {
@@ -84,7 +92,7 @@ beforeEach(() => {
           },
         }
       case '/api/user/models':
-        return { data: { success: true, data: ['gpt-4o-mini'] } }
+        return { data: { success: true, data: models } }
       case '/api/data/self':
         return { data: { success: true, data: [] } }
       default:
@@ -119,7 +127,10 @@ describe('overview setup guide', () => {
     { keys: [], signal: 'Needs API key' },
     { keys: [API_KEY_STATUS.DISABLED], signal: 'Needs API key' },
     {
-      keys: [API_KEY_STATUS.DISABLED, API_KEY_STATUS.ENABLED],
+      keys: [
+        ...Array(100).fill(API_KEY_STATUS.DISABLED),
+        API_KEY_STATUS.ENABLED,
+      ],
       signal: 'Secured',
     },
   ])('displays $signal for key statuses $keys', async ({ keys, signal }) => {
@@ -127,6 +138,21 @@ describe('overview setup guide', () => {
     window.localStorage.setItem(storageKey, 'expanded')
     await renderOverview()
     expect(await screen.findByText(signal)).toBeVisible()
+    const copy = screen.queryByRole('button', {
+      name: 'Copy ready-to-run curl',
+    })
+    if (signal === 'Secured') expect(copy).toBeEnabled()
+    else expect(copy).not.toBeInTheDocument()
+  })
+
+  it('disables request copying when an enabled key has no available model', async () => {
+    models = []
+    window.localStorage.setItem(storageKey, 'expanded')
+    await renderOverview()
+    expect(await screen.findByText('No models available')).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'Copy ready-to-run curl' })
+    ).toBeDisabled()
   })
 
   it('shows usage first and only a header entry when setup is complete', async () => {

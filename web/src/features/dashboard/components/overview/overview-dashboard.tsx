@@ -50,7 +50,6 @@ import { Button } from '@/components/ui/button'
 import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
 import { API_KEY_STATUS } from '@/features/keys/constants'
-import type { ApiKey } from '@/features/keys/types'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { getUserModels } from '@/lib/api'
 import { handleServerError } from '@/lib/handle-server-error'
@@ -159,14 +158,6 @@ function normalizeEndpoint(sourceUrl?: string): string {
     return `${withoutTrailingSlash}/chat/completions`
   }
   return `${withoutTrailingSlash}/v1/chat/completions`
-}
-
-function getPreferredKey(keys: ApiKey[]): ApiKey | null {
-  return (
-    keys.find((item) => item.status === API_KEY_STATUS.ENABLED) ??
-    keys[0] ??
-    null
-  )
 }
 
 function formatDisplayKey(key?: string): string {
@@ -353,18 +344,18 @@ function RequestPreview(props: {
               {t('First API request')}
             </div>
             <div className='text-muted-foreground truncate text-xs'>
-              {props.example.ready
+              {props.example.keyId
                 ? props.example.keyName
                 : t('Create an API key to unlock the real request')}
             </div>
           </div>
         </div>
-        {props.example.ready ? (
+        {props.example.keyId ? (
           <Button
             variant='outline'
             size='sm'
             className='h-7 gap-1.5 px-2 text-xs'
-            disabled={isCopying}
+            disabled={isCopying || !props.example.ready}
             onClick={handleCopyRequest}
             aria-label={t('Copy ready-to-run curl')}
           >
@@ -487,10 +478,17 @@ export function OverviewDashboard() {
   const isAdmin = Boolean(user?.role && user.role >= ROLE.ADMIN)
 
   const apiKeysQuery = useQuery({
-    queryKey: ['dashboard', 'overview', 'api-keys'],
+    queryKey: ['dashboard', 'overview', 'active-api-key', user?.id],
     queryFn: async () => {
-      const result = requireServerSuccess(await getApiKeys({ p: 1, size: 10 }))
-      return result.success ? (result.data?.items ?? []) : []
+      const size = 100
+      for (let p = 1; ; p++) {
+        const { data } = requireServerSuccess(await getApiKeys({ p, size }))
+        const key = data?.items.find(
+          (item) => item.status === API_KEY_STATUS.ENABLED
+        )
+        if (key) return key
+        if (!data?.items.length || p * size >= data.total) return null
+      }
     },
     staleTime: 60 * 1000,
   })
@@ -504,10 +502,7 @@ export function OverviewDashboard() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const preferredKey = useMemo(
-    () => getPreferredKey(apiKeysQuery.data ?? []),
-    [apiKeysQuery.data]
-  )
+  const preferredKey = apiKeysQuery.data
 
   const startSteps = useMemo<StartStep[]>(
     () => [
@@ -572,13 +567,12 @@ export function OverviewDashboard() {
     [isAdmin, quickActions]
   )
 
-  const hasActiveKey = preferredKey?.status === API_KEY_STATUS.ENABLED
   let authSignal: Pick<HeroSignal, 'value' | 'tone'>
   if (apiKeysQuery.isPending) {
     authSignal = { value: t('Loading'), tone: 'neutral' }
   } else if (apiKeysQuery.isError) {
     authSignal = { value: t('Unavailable'), tone: 'destructive' }
-  } else if (hasActiveKey) {
+  } else if (preferredKey) {
     authSignal = { value: t('Secured'), tone: 'success' }
   } else {
     authSignal = { value: t('Needs API key'), tone: 'warning' }
@@ -606,13 +600,13 @@ export function OverviewDashboard() {
 
   const requestExample = useMemo<RequestExample>(() => {
     const endpoint = normalizeEndpoint(apiInfoItems[0]?.url)
-    const model = modelsQuery.data?.[0] ?? 'gpt-4o-mini'
+    const model = modelsQuery.data?.[0]
     const keyName = preferredKey?.name ?? t('No API key yet')
     const ready = Boolean(preferredKey?.id && model)
 
     return {
       endpoint,
-      model,
+      model: model ?? 'MODEL_ID',
       keyName,
       keyId: preferredKey?.id,
       displayKey: preferredKey
