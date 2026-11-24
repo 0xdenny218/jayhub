@@ -1,9 +1,8 @@
-/* Opt-in on the homepage and sign-in page. Portals and notifications inherit only while that page is mounted. */
+/* Opt-in on branded public pages. Portals and notifications inherit only while that page is mounted. */
 .delivery-public,
 body:has(#root .delivery-public) [data-base-ui-portal],
 body:has(#root .delivery-public) [data-sonner-toaster] {
   --radius: 0.625rem;
-  --delivery-highlight: #9b631b;
   --delivery-heading-gradient: linear-gradient(
     110deg,
     #8d5815 0%,
@@ -22,7 +21,6 @@ body:has(#root .delivery-public) [data-sonner-toaster] {
 .dark .delivery-public,
 .dark body:has(#root .delivery-public) [data-base-ui-portal],
 .dark body:has(#root .delivery-public) [data-sonner-toaster] {
-  --delivery-highlight: #e0bc7c;
   --delivery-heading-gradient: linear-gradient(
     110deg,
     #d6b476 0%,
@@ -97,6 +95,15 @@ body:has(#root .delivery-public) [data-sonner-toaster] {
     margin-inline: 1rem;
     padding: 1.5rem;
   }
+}
+
+/* Shared by Model Square and Rankings, including direct visits. */
+.delivery-directory {
+  background-image:
+    radial-gradient(ellipse at 75% 0%, var(--accent), transparent 65%),
+    linear-gradient(to bottom, var(--card), var(--background) 85%);
+  background-size: 100% 24rem;
+  background-repeat: no-repeat;
 }
 
 /* Model directory on the built-in homepage. */

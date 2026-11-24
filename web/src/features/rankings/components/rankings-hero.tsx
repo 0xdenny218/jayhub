@@ -47,7 +47,7 @@ export function RankingsHero(props: RankingsHeroProps) {
         <h1 className='text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.15] font-bold tracking-tight'>
           {t('Rankings')}
         </h1>
-        <p className='text-muted-foreground/80 max-w-2xl text-sm'>
+        <p className='text-muted-foreground max-w-2xl text-sm'>
           {t(
             'Discover the most-used models and rising vendors on the platform, updated from live usage data.'
           )}
@@ -72,7 +72,7 @@ export function RankingsHero(props: RankingsHeroProps) {
               className={cn(
                 'focus-visible:ring-ring/40 relative -mb-px rounded-sm px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none',
                 isActive
-                  ? 'text-foreground'
+                  ? 'text-accent-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -80,7 +80,7 @@ export function RankingsHero(props: RankingsHeroProps) {
               <span
                 aria-hidden
                 className={cn(
-                  'bg-foreground absolute inset-x-3 -bottom-px h-[2px] rounded-full transition-opacity',
+                  'bg-(--delivery-highlight) absolute inset-x-3 -bottom-px h-[2px] rounded-full transition-opacity',
                   isActive ? 'opacity-100' : 'opacity-0'
                 )}
               />

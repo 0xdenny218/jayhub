@@ -18,9 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { VChart } from '@visactor/react-vchart'
 import { BarChart3, Trophy } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useThemeColor } from '@/lib/theme-color'
 import { useChartTheme } from '@/lib/use-chart-theme'
 import { VCHART_OPTION } from '@/lib/vchart'
 
@@ -51,14 +52,12 @@ type ModelsSectionProps = {
 export function ModelsSection(props: ModelsSectionProps) {
   const { t } = useTranslation()
   const { resolvedTheme, themeReady } = useChartTheme()
-  const chartTextColor =
-    resolvedTheme === 'dark'
-      ? 'rgba(255, 255, 255, 0.68)'
-      : 'rgba(15, 23, 42, 0.58)'
-  const chartGridColor =
-    resolvedTheme === 'dark'
-      ? 'rgba(255, 255, 255, 0.12)'
-      : 'rgba(15, 23, 42, 0.12)'
+  const chartScope = useRef<HTMLElement>(null)
+  const chartTextColor = useThemeColor('--muted-foreground', chartScope)
+  const chartGridColor = useThemeColor('--border', chartScope)
+
+  const highlight = useThemeColor('--delivery-highlight', chartScope)
+  const leadingModel = props.history.models[0]?.name
 
   // Order points so the largest model appears at the bottom of every stack.
   const orderedPoints = useMemo(() => {
@@ -85,6 +84,10 @@ export function ModelsSection(props: ModelsSectionProps) {
       xField: 'label',
       yField: 'tokens',
       seriesField: 'model',
+      color:
+        leadingModel && highlight
+          ? { specified: { [leadingModel]: highlight } }
+          : undefined,
       stack: true,
       legends: { visible: false },
       axes: [
@@ -161,10 +164,20 @@ export function ModelsSection(props: ModelsSectionProps) {
       },
       animationAppear: { duration: 500 },
     }
-  }, [chartGridColor, chartTextColor, orderedPoints, t])
+  }, [
+    chartGridColor,
+    chartTextColor,
+    highlight,
+    leadingModel,
+    orderedPoints,
+    t,
+  ])
 
   return (
-    <section className='bg-card overflow-hidden rounded-lg border'>
+    <section
+      ref={chartScope}
+      className='bg-card overflow-hidden rounded-lg border'
+    >
       {/* Chart block ----------------------------------------------------- */}
       <header className='flex items-start justify-between gap-4 px-5 py-4'>
         <div className='min-w-0 flex-1'>
@@ -180,7 +193,7 @@ export function ModelsSection(props: ModelsSectionProps) {
           <div className='text-foreground font-mono text-2xl font-semibold tabular-nums'>
             {formatTokens(totalTokens)}
           </div>
-          <div className='text-muted-foreground/80 text-[10px] font-medium tracking-widest uppercase'>
+          <div className='text-muted-foreground text-[10px] font-medium tracking-widest uppercase'>
             {t('tokens')}
           </div>
         </div>
@@ -199,7 +212,7 @@ export function ModelsSection(props: ModelsSectionProps) {
               option={VCHART_OPTION}
             />
           ) : (
-            <div className='text-muted-foreground/80 flex h-full items-center justify-center text-xs'>
+            <div className='text-muted-foreground flex h-full items-center justify-center text-xs'>
               {t('No history data available')}
             </div>
           )}
@@ -213,12 +226,12 @@ export function ModelsSection(props: ModelsSectionProps) {
             <Trophy className='size-3.5 text-amber-500' />
             {t('LLM Leaderboard')}
           </h3>
-          <p className='text-muted-foreground/80 mt-0.5 text-xs'>
+          <p className='text-muted-foreground mt-0.5 text-xs'>
             {t('Compare the most popular models on the platform')}
           </p>
         </header>
         {props.rows.length === 0 ? (
-          <div className='text-muted-foreground/80 px-5 py-8 text-center text-sm'>
+          <div className='text-muted-foreground px-5 py-8 text-center text-sm'>
             {t('No models match the selected filters')}
           </div>
         ) : (

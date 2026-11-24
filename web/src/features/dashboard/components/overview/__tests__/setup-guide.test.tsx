@@ -27,6 +27,7 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { API_KEY_STATUS } from '@/features/keys/constants'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { useSystemConfigStore } from '@/stores/system-config-store'
@@ -36,6 +37,7 @@ import { OverviewDashboard } from '../overview-dashboard'
 const storageKey = 'dashboard_overview_setup_guide_expanded'
 let client: QueryClient
 let keyLookupError: Error | null
+let keyStatuses: number[]
 
 beforeEach(() => {
   window.localStorage.clear()
@@ -52,6 +54,7 @@ beforeEach(() => {
     defaultOptions: { queries: { retry: false } },
   })
   keyLookupError = null
+  keyStatuses = [API_KEY_STATUS.ENABLED]
   vi.spyOn(api, 'get').mockImplementation(async (url) => {
     switch (url) {
       case '/api/token/?p=1&size=10':
@@ -60,7 +63,12 @@ beforeEach(() => {
           data: {
             success: true,
             data: {
-              items: [{ id: 1, name: 'App key', key: 'masked', status: 1 }],
+              items: keyStatuses.map((status, index) => ({
+                id: index + 1,
+                name: 'App key',
+                key: 'masked',
+                status,
+              })),
             },
           },
         }
@@ -107,6 +115,20 @@ async function renderOverview() {
 }
 
 describe('overview setup guide', () => {
+  it.each([
+    { keys: [], signal: 'Needs API key' },
+    { keys: [API_KEY_STATUS.DISABLED], signal: 'Needs API key' },
+    {
+      keys: [API_KEY_STATUS.DISABLED, API_KEY_STATUS.ENABLED],
+      signal: 'Secured',
+    },
+  ])('displays $signal for key statuses $keys', async ({ keys, signal }) => {
+    keyStatuses = keys
+    window.localStorage.setItem(storageKey, 'expanded')
+    await renderOverview()
+    expect(await screen.findByText(signal)).toBeVisible()
+  })
+
   it('shows usage first and only a header entry when setup is complete', async () => {
     await renderOverview()
 
@@ -230,6 +252,7 @@ describe('overview setup guide', () => {
   it('does not show a completed setup entry when the key lookup fails', async () => {
     keyLookupError = new Error('Key lookup unavailable')
     await renderOverview()
+    expect(await screen.findByText('Unavailable')).toBeVisible()
 
     expect(
       await screen.findByRole('button', { name: 'Hide setup guide' })
