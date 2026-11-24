@@ -29,6 +29,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { API_KEY_STATUS } from '@/features/keys/constants'
 import { api } from '@/lib/api'
+import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
@@ -88,6 +89,7 @@ beforeEach(() => {
               announcements_enabled: false,
               faq_enabled: false,
               uptime_kuma_enabled: false,
+              channel_management_enabled: false,
             },
           },
         }
@@ -203,6 +205,19 @@ describe('overview setup guide', () => {
     await user.click(screen.getByRole('button', { name: 'Hide setup guide' }))
     expect(toggle).toHaveAttribute('aria-expanded', 'false')
     expect(toggle).toHaveFocus()
+  })
+
+  it('shows the admin channel shortcut when channel management is read-only', async () => {
+    const user = userEvent.setup()
+    const { auth } = useAuthStore.getState()
+    if (!auth.user) throw new Error('Expected the dashboard user fixture')
+    auth.setUser({ ...auth.user, role: ROLE.SUPER_ADMIN })
+    await renderOverview()
+
+    await user.click(await screen.findByRole('button', { name: 'Setup guide' }))
+    expect(
+      await screen.findByRole('button', { name: /^Channels/ })
+    ).toBeVisible()
   })
 
   it('restores the completed guide preference after remounting', async () => {

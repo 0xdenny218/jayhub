@@ -29,6 +29,7 @@ import {
 } from '@/lib/nav-modules'
 import {
   STATUS_QUERY_KEY,
+  STATUS_STORAGE_KEY,
   ensureStatus,
   statusQueryOptions,
 } from '@/lib/status-query'
@@ -143,6 +144,39 @@ describe('shared status query deduplication', () => {
       expect(statusRequests).toHaveLength(1)
     }
   )
+
+  test('uses the server channel flag instead of the previous session snapshot', async () => {
+    window.localStorage.setItem(
+      STATUS_STORAGE_KEY,
+      JSON.stringify({
+        system_name: 'previous',
+        channel_management_enabled: true,
+      })
+    )
+    const queryClient = createQueryClient()
+    let resolveStatus!: (value: { data: unknown }) => void
+    const response = new Promise<{ data: unknown }>((resolve) => {
+      resolveStatus = resolve
+    })
+    apiClient.get = () => response
+
+    const hook = renderHook(() => useStatus(), {
+      wrapper: wrapper(queryClient),
+    })
+    expect(hook.result.current.status?.system_name).toBe('previous')
+    expect(hook.result.current.channelManagementEnabled).toBe(false)
+
+    resolveStatus({
+      data: {
+        success: true,
+        data: { system_name: 'current', channel_management_enabled: false },
+      },
+    })
+    await waitFor(() =>
+      expect(hook.result.current.status?.system_name).toBe('current')
+    )
+    expect(hook.result.current.channelManagementEnabled).toBe(false)
+  })
 
   test('resolves a later consumer from the warm cache without a second request', async () => {
     stubStatusEndpoint('warm')

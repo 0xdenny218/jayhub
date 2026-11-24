@@ -541,7 +541,7 @@ export function OverviewDashboard() {
       },
       {
         title: t('Channels'),
-        description: t('Configure upstream providers and routing.'),
+        description: t('View channel lists and details without secrets.'),
         to: '/channels',
         icon: RadioTower,
         adminOnly: true,

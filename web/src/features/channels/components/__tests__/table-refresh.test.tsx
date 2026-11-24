@@ -31,8 +31,11 @@ import { I18nextProvider } from 'react-i18next'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 import { api } from '@/lib/api'
+import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 import type { Channel } from '../../types'
+import { ChannelsPrimaryButtons } from '../channels-primary-buttons'
 import { ChannelsProvider } from '../channels-provider'
 import { ChannelsTable } from '../channels-table'
 
@@ -43,6 +46,7 @@ await i18n.init({
   initAsync: false,
 })
 const clients: QueryClient[] = []
+const originalAuth = useAuthStore.getState().auth
 
 function channel(name: string): Channel {
   return {
@@ -57,6 +61,8 @@ function channel(name: string): Channel {
     other: '',
     balance: 0,
     balance_updated_time: 0,
+    priority: 42,
+    weight: 17,
     models: 'gpt-4o',
     group: 'vip',
     used_quota: 0,
@@ -82,10 +88,14 @@ afterEach(() => {
   cleanup()
   localStorage.clear()
   clients.splice(0).forEach((client) => client.clear())
+  useAuthStore.setState({ auth: originalAuth })
   vi.restoreAllMocks()
 })
 
-async function renderChannelsPage(searchGate: () => Promise<void>) {
+async function renderChannelsPage(
+  searchGate: () => Promise<void>,
+  readOnly = false
+) {
   const get = vi.spyOn(api, 'get').mockImplementation(async (url) => {
     if (url === '/api/channel/search') {
       await searchGate()
@@ -108,7 +118,8 @@ async function renderChannelsPage(searchGate: () => Promise<void>) {
     getParentRoute: () => auth,
     path: 'channels/',
     component: () => (
-      <ChannelsProvider>
+      <ChannelsProvider readOnly={readOnly}>
+        {readOnly && <ChannelsPrimaryButtons />}
         <ChannelsTable />
       </ChannelsProvider>
     ),
@@ -153,3 +164,35 @@ it('refetches the channel list with the current filters and marks Refresh busy w
   release()
   await waitFor(() => expect(refresh).toHaveAttribute('aria-busy', 'false'))
 })
+
+it.each(['table', 'card'] as const)(
+  'shows channel data and hides management controls in the read-only %s view',
+  async (viewMode) => {
+    localStorage.setItem('channels:view-mode', viewMode)
+    useAuthStore.getState().auth.setUser({
+      id: 1,
+      username: 'root',
+      role: ROLE.SUPER_ADMIN,
+    })
+
+    await renderChannelsPage(() => Promise.resolve(), true)
+
+    expect(screen.getByText('42')).toBeVisible()
+    expect(screen.getByText('17')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeVisible()
+    expect(screen.getByRole('switch', { name: 'Tag Mode' })).toBeVisible()
+    for (const name of [
+      'Create Channel',
+      'Edit',
+      'Test Connection',
+      'Disable',
+      'Increment',
+      'Drag mode',
+    ]) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
+    }
+    expect(
+      screen.queryByRole('switch', { name: 'Batch Operations' })
+    ).not.toBeInTheDocument()
+  }
+)

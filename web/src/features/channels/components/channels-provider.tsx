@@ -53,6 +53,7 @@ type DialogType =
 type UpstreamUpdateState = ReturnType<typeof useChannelUpstreamUpdates>
 
 type ChannelsContextType = {
+  readOnly: boolean
   open: DialogType
   setOpen: (open: DialogType) => void
   currentRow: Channel | null
@@ -84,7 +85,13 @@ const ChannelsContext = createContext<ChannelsContextType | undefined>(
 // Provider
 // ============================================================================
 
-export function ChannelsProvider({ children }: { children: React.ReactNode }) {
+export function ChannelsProvider({
+  children,
+  readOnly = false,
+}: {
+  children: React.ReactNode
+  readOnly?: boolean
+}) {
   const [open, setOpen] = useState<DialogType>(null)
   const [currentRow, setCurrentRow] = useState<Channel | null>(null)
   const [currentTag, setCurrentTag] = useState<string | null>(null)
@@ -119,6 +126,7 @@ export function ChannelsProvider({ children }: { children: React.ReactNode }) {
   // (including all channel cards/cells) a brand-new object on each render.
   const value = useMemo<ChannelsContextType>(
     () => ({
+      readOnly,
       open,
       setOpen,
       currentRow,
@@ -129,7 +137,7 @@ export function ChannelsProvider({ children }: { children: React.ReactNode }) {
       setEnableTagMode,
       sorting,
       setSorting,
-      batchMode,
+      batchMode: !readOnly && batchMode,
       setBatchMode,
       sensitiveVisible,
       setSensitiveVisible,
@@ -138,6 +146,7 @@ export function ChannelsProvider({ children }: { children: React.ReactNode }) {
       upstream,
     }),
     [
+      readOnly,
       open,
       currentRow,
       currentTag,
