@@ -664,6 +664,37 @@ func (channel *Channel) Update() error {
 	return err
 }
 
+// UpdateUpstreamModelList commits the synchronized model list and its routing
+// abilities together, provided the channel still matches the discovery request.
+func (channel *Channel) UpdateUpstreamModelList(models string, settings string) error {
+	if err := DB.Transaction(func(tx *gorm.DB) error {
+		var current Channel
+		if err := lockForUpdate(tx).First(&current, channel.Id).Error; err != nil {
+			return err
+		}
+		if current.Models != channel.Models || current.OtherSettings != channel.OtherSettings ||
+			current.Type != channel.Type || current.Status != channel.Status || current.Key != channel.Key ||
+			current.ChannelInfo.IsMultiKey != channel.ChannelInfo.IsMultiKey ||
+			current.GetBaseURL() != channel.GetBaseURL() ||
+			lo.FromPtr(current.Setting) != lo.FromPtr(channel.Setting) ||
+			lo.FromPtr(current.ModelMapping) != lo.FromPtr(channel.ModelMapping) ||
+			lo.FromPtr(current.HeaderOverride) != lo.FromPtr(channel.HeaderOverride) {
+			return errors.New("channel changed during upstream model discovery")
+		}
+		if err := tx.Model(&current).Updates(map[string]any{"models": models, "settings": settings}).Error; err != nil {
+			return err
+		}
+		current.Models = models
+		return current.UpdateAbilities(tx)
+	}); err != nil {
+		return err
+	}
+	channel.Models = models
+	channel.OtherSettings = settings
+	BumpSyncTopic(SyncTopicChannels)
+	return nil
+}
+
 func (channel *Channel) UpdateResponseTime(responseTime int64) {
 	err := DB.Model(channel).Select("response_time", "test_time").Updates(Channel{
 		TestTime:     common.GetTimestamp(),

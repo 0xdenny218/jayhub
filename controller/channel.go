@@ -55,7 +55,7 @@ type OpenAIModel struct {
 
 type OpenAIModelsResponse struct {
 	Data    []OpenAIModel `json:"data"`
-	Success bool          `json:"success"`
+	Success *bool         `json:"success"`
 }
 
 func parseStatusFilter(statusParam string) int {

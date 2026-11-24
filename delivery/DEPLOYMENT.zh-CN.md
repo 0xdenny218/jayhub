@@ -71,6 +71,8 @@ curl -fsS http://127.0.0.1:3000/api/status
 4. 在本站配置面向终端用户的模型价格、分组倍率和额度。创建普通验收账号并签发**本站用户令牌**，以该令牌调用甲方域名。甲方按本站用量向用户收费和处理退款，供货方按其平台上甲方账号的账单结算。
 5. 用双方约定的一个文本模型完成一次小额调用，核对本站用量记录和供货方的甲方账号记录。若开通图片或视频，再各验收一个模型。异步任务需要验证提交、状态查询和结果下载。成功后再向终端用户开放注册或分发令牌。
 
+For automatic PlusHub model updates, use a `New API` channel (type `60`) for each upstream API key. Merge `"upstream_model_update_check_enabled": true` and `"upstream_model_update_auto_sync_enabled": true` into each channel's `settings` JSON. The scheduled task uses that key to read `/v1/models` and refreshes the channel's routing when models are granted or revoked. The default interval is 30 minutes.
+
 ## 5. 日常运维与备份
 
 | 操作 | 命令 |
