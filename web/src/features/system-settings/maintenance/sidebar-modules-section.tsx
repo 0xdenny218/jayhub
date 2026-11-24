@@ -28,6 +28,7 @@ import {
   FormLabel,
 } from '@/components/ui/form'
 import { Switch } from '@/components/ui/switch'
+import { useStatus } from '@/hooks/use-status'
 
 import {
   SettingsControlChildren,
@@ -62,6 +63,7 @@ export function SidebarModulesSection({
   initialSerialized,
 }: SidebarModulesSectionProps) {
   const { t } = useTranslation()
+  const { channelManagementEnabled } = useStatus()
   const updateOption = useUpdateOption()
 
   const sectionMeta: Record<string, { title: string; description: string }> = {
@@ -209,7 +211,11 @@ export function SidebarModulesSection({
               description: t('Custom sidebar section'),
             }
             const modules = Object.entries(sectionConfig).filter(
-              ([moduleKey]) => moduleKey !== 'enabled'
+              ([moduleKey]) =>
+                moduleKey !== 'enabled' &&
+                (sectionKey !== 'admin' ||
+                  moduleKey !== 'channel' ||
+                  channelManagementEnabled)
             )
 
             return (

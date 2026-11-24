@@ -41,6 +41,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import type { SidebarBadges, SidebarData } from '@/components/layout/types'
+import { useStatus } from '@/hooks/use-status'
 import { ROLE } from '@/lib/roles'
 
 /**
@@ -51,6 +52,7 @@ import { ROLE } from '@/lib/roles'
  */
 export function useSidebarData(badges: SidebarBadges = {}): SidebarData {
   const { t } = useTranslation()
+  const { channelManagementEnabled } = useStatus()
 
   return {
     navGroups: [
@@ -133,11 +135,15 @@ export function useSidebarData(badges: SidebarBadges = {}): SidebarData {
         id: 'admin',
         title: t('Admin'),
         items: [
-          {
-            title: t('Channels'),
-            url: '/channels',
-            icon: Radio,
-          },
+          ...(channelManagementEnabled
+            ? [
+                {
+                  title: t('Channels'),
+                  url: '/channels',
+                  icon: Radio,
+                },
+              ]
+            : []),
           {
             title: t('Models'),
             url: '/models/metadata',

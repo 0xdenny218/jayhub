@@ -21,6 +21,7 @@ import z from 'zod'
 
 import { Channels } from '@/features/channels'
 import { ROLE } from '@/lib/roles'
+import { statusQueryOptions } from '@/lib/status-query'
 import { useAuthStore } from '@/stores/auth-store'
 
 const channelsSearchSchema = z.object({
@@ -34,10 +35,16 @@ const channelsSearchSchema = z.object({
 })
 
 export const Route = createFileRoute('/_authenticated/channels/')({
-  beforeLoad: () => {
+  beforeLoad: async ({ context }) => {
     const { auth } = useAuthStore.getState()
+    const status =
+      auth.user && auth.user.role >= ROLE.ADMIN
+        ? await context.queryClient
+            .fetchQuery(statusQueryOptions)
+            .catch(() => null)
+        : null
 
-    if (!auth.user || auth.user.role < ROLE.ADMIN) {
+    if (status?.channel_management_enabled !== true) {
       throw redirect({
         to: '/403',
       })
