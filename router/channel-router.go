@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"github.com/gin-gonic/gin"
+	"github.com/plushubai/plushub4deliver/common"
 	"github.com/plushubai/plushub4deliver/controller"
 	"github.com/plushubai/plushub4deliver/middleware"
 	"github.com/plushubai/plushub4deliver/service/authz"
@@ -41,7 +42,14 @@ func registerChannelRoutes(apiRouter *gin.RouterGroup) {
 	channelRoute := apiRouter.Group("/channel")
 	channelRoute.Use(middleware.AdminAuth())
 
-	channelRoute.POST("/:id/key",
+	managementRoute := channelRoute
+	if !common.ChannelManagementEnabled {
+		managementRoute = channelRoute.Group("", func(c *gin.Context) {
+			c.AbortWithStatus(http.StatusForbidden)
+		})
+	}
+
+	managementRoute.POST("/:id/key",
 		middleware.RootAuth(),
 		middleware.CriticalRateLimit(),
 		middleware.DisableCache(),
@@ -50,7 +58,11 @@ func registerChannelRoutes(apiRouter *gin.RouterGroup) {
 	)
 
 	for _, route := range channelPermissionRoutes {
-		handlePermissionRoute(channelRoute, route.method, route.path, route.permission, route.handler)
+		group := channelRoute
+		if route.permission != authz.ChannelRead {
+			group = managementRoute
+		}
+		handlePermissionRoute(group, route.method, route.path, route.permission, route.handler)
 	}
 }
 

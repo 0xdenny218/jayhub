@@ -105,6 +105,7 @@ function isDisabledChannelRow(channel: Channel) {
 export function ChannelsTable() {
   const { t } = useTranslation()
   const {
+    readOnly,
     enableTagMode,
     sorting,
     setSorting,
@@ -331,6 +332,7 @@ export function ChannelsTable() {
   const sortDesc = sorting[0]?.desc ?? true
   const [reorderEnabled, setReorderEnabled] = useState(false)
   const canReorder =
+    !readOnly &&
     sortField === 'priority' &&
     !enableTagMode &&
     hasPermission(user, 'channel', 'write')
@@ -502,7 +504,8 @@ export function ChannelsTable() {
 
   return (
     <ChannelPriorityContext.Provider value={dragControls}>
-      {priorityActionContainer &&
+      {!readOnly &&
+        priorityActionContainer &&
         createPortal(
           <ChannelPriorityModeToggle
             active={reorderActive}
@@ -530,9 +533,13 @@ export function ChannelsTable() {
           isLoading={isLoading}
           isFetching={isFetching}
           emptyTitle={t('No Channels Found')}
-          emptyDescription={t(
-            'No channels available. Create your first channel to get started.'
-          )}
+          emptyDescription={
+            readOnly
+              ? undefined
+              : t(
+                  'No channels available. Create your first channel to get started.'
+                )
+          }
           skeletonKeyPrefix='channel-skeleton'
           enableCardView
           viewMode={viewMode}

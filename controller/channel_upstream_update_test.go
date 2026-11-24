@@ -2,13 +2,19 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/glebarez/sqlite"
 	"github.com/plushubai/plushub4deliver/common"
 	"github.com/plushubai/plushub4deliver/constant"
 	"github.com/plushubai/plushub4deliver/i18n"
@@ -16,6 +22,9 @@ import (
 	"github.com/plushubai/plushub4deliver/relaykit/dto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func newAdvancedCustomModelListChannel(baseURL string, key string, upstreamPath string, auth *dto.AdvancedCustomRouteAuth) *model.Channel {
@@ -346,7 +355,7 @@ func TestFailedAdvancedCustomDetectionDoesNotStageFullRemoval(t *testing.T) {
 	channel.SetOtherSettings(settings)
 	require.NoError(t, db.Create(channel).Error)
 
-	modelsChanged, autoAdded, err := checkAndPersistChannelUpstreamModelUpdates(channel, &settings, true, true)
+	modelsChanged, autoAdded, _, err := checkAndPersistChannelUpstreamModelUpdates(channel, &settings, true, true)
 	require.ErrorContains(t, err, "no valid model IDs")
 	require.False(t, modelsChanged)
 	require.Zero(t, autoAdded)
@@ -416,6 +425,131 @@ func TestFetchNewAPIModelsUsesOpenAIContract(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, []string{"gpt-5", "gpt-5-mini"}, models)
+}
+
+func TestSyncNewAPIChannelModels(t *testing.T) {
+	for _, dialect := range []string{"sqlite", "mysql", "postgres"} {
+		t.Run(dialect, func(t *testing.T) {
+			driver := gorm.Dialector(sqlite.Open(":memory:"))
+			dbType := common.DatabaseTypeSQLite
+			versionQuery := "SELECT sqlite_version()"
+			if dialect != "sqlite" {
+				dsn := os.Getenv("TEST_" + strings.ToUpper(dialect) + "_DSN")
+				if dsn == "" {
+					t.Skip("Set the test DSN for a dedicated empty database")
+				}
+				versionQuery = "SELECT version()"
+				if dialect == "mysql" {
+					driver, dbType = mysql.Open(dsn), common.DatabaseTypeMySQL
+				} else {
+					driver, dbType = postgres.Open(dsn), common.DatabaseTypePostgreSQL
+				}
+			}
+			db, err := gorm.Open(driver, &gorm.Config{})
+			require.NoError(t, err)
+			conn, err := db.DB()
+			require.NoError(t, err)
+			conn.SetMaxOpenConns(1)
+			t.Cleanup(func() { require.NoError(t, conn.Close()) })
+			previousDB := model.DB
+			previousMain, previousLog := common.MainDatabaseType(), common.LogDatabaseType()
+			previousMemoryCache := common.MemoryCacheEnabled
+			t.Cleanup(func() {
+				model.DB = previousDB
+				common.SetDatabaseTypes(previousMain, previousLog)
+				common.MemoryCacheEnabled = previousMemoryCache
+			})
+			model.DB = db
+			common.SetDatabaseTypes(dbType, dbType)
+			common.MemoryCacheEnabled = false
+			tables := []any{&model.Channel{}, &model.Ability{}, &model.SystemTask{}, &model.User{}}
+			for _, table := range tables {
+				require.False(t, db.Migrator().HasTable(table), "use a dedicated empty database")
+			}
+			t.Cleanup(func() { assert.NoError(t, db.Migrator().DropTable(tables...)) })
+			require.NoError(t, db.AutoMigrate(tables...))
+			var version string
+			require.NoError(t, db.Raw(versionQuery).Scan(&version).Error)
+			t.Logf("database version: %s", version)
+			t.Setenv("CHANNEL_UPSTREAM_MODEL_UPDATE_MIN_CHECK_INTERVAL_SECONDS", "0")
+
+			var response atomic.Value
+			response.Store(`{"data":[{"id":"gpt-new"},{"id":"shared"}]}`)
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "/v1/models", r.URL.Path)
+				switch r.Header.Get("Authorization") {
+				case "Bearer openai-test-key":
+					_, _ = fmt.Fprint(w, response.Load())
+				case "Bearer claude-test-key":
+					_, _ = fmt.Fprint(w, `{"data":[{"id":"claude"},{"id":"shared"}]}`)
+				default:
+					w.WriteHeader(http.StatusUnauthorized)
+				}
+			}))
+			t.Cleanup(upstream.Close)
+
+			channels := []model.Channel{
+				{Name: "OpenAI", Key: "openai-test-key", Models: "gpt-old,shared"},
+				{Name: "Claude", Key: "claude-test-key", Models: "claude,shared"},
+			}
+			for i := range channels {
+				channel := &channels[i]
+				channel.Type = constant.ChannelTypeNewAPI
+				channel.Status = common.ChannelStatusEnabled
+				channel.BaseURL = &upstream.URL
+				channel.SetOtherSettings(dto.ChannelOtherSettings{
+					UpstreamModelUpdateCheckEnabled:    true,
+					UpstreamModelUpdateAutoSyncEnabled: true,
+				})
+				require.NoError(t, channel.Insert())
+			}
+
+			checkModels := func(channelID int, want string) {
+				t.Helper()
+				current, err := model.GetChannelById(channelID, true)
+				require.NoError(t, err)
+				assert.Equal(t, want, current.Models)
+				assert.Empty(t, current.GetOtherSettings().UpstreamModelUpdateLastRemovedModels)
+				var models []string
+				require.NoError(t, db.Model(&model.Ability{}).Where("channel_id = ? AND enabled = ?", channelID, true).Pluck("model", &models).Error)
+				assert.ElementsMatch(t, current.GetModels(), models)
+			}
+			run := func() upstreamModelUpdateSummary {
+				return runChannelUpstreamModelUpdateTaskOnce(context.Background(), false, true, nil)
+			}
+			summary := run()
+			assert.Equal(t, 1, summary.AutoAddedModels)
+			assert.Equal(t, 1, summary.DetectedRemoveModels)
+			checkModels(channels[0].Id, "shared,gpt-new")
+			checkModels(channels[1].Id, "claude,shared")
+			require.ErrorContains(t, channels[0].UpdateUpstreamModelList("", channels[0].OtherSettings), "channel changed")
+
+			for _, invalid := range []string{`{"object":"list"}`, `{"success":false,"data":[]}`, `{"data":[{"id":""}]}`} {
+				response.Store(invalid)
+				assert.Equal(t, 1, run().FailedChannels)
+				checkModels(channels[0].Id, "shared,gpt-new")
+			}
+			response.Store(`{"data":[]}`)
+			const deleteFailure = "test:fail_ability_delete"
+			require.NoError(t, db.Callback().Delete().Before("gorm:delete").Register(deleteFailure, func(tx *gorm.DB) {
+				if tx.Statement.Table == "abilities" {
+					_ = tx.AddError(errors.New("ability write failed"))
+				}
+			}))
+			assert.Equal(t, 1, run().FailedChannels)
+			checkModels(channels[0].Id, "shared,gpt-new")
+			require.NoError(t, db.Callback().Delete().Remove(deleteFailure))
+			assert.Equal(t, 2, run().DetectedRemoveModels)
+			checkModels(channels[0].Id, "")
+			assert.ElementsMatch(t, []string{"claude", "shared"}, model.GetEnabledModels())
+			checkModels(channels[1].Id, "claude,shared")
+			assert.Zero(t, run().ChangedChannels)
+
+			response.Store(`{"data":[{"id":"gpt-new"}]}`)
+			assert.Equal(t, 1, run().AutoAddedModels)
+			checkModels(channels[0].Id, "gpt-new")
+		})
+	}
 }
 
 func TestNormalizeModelNames(t *testing.T) {
