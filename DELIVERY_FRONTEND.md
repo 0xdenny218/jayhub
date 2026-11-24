@@ -14,7 +14,9 @@
 - 登录页使用官方居中单栏结构和原有认证表单，增加表单面板边框、输入框尺寸和背景细节。
 - 主题使用暖白背景、炭黑色主按钮及琥珀色重点文字。深色模式使用暖炭色背景和浅金沙色主按钮，支持手机布局。
 - 导航保留官方的滚动收窄效果；移动菜单保留可访问状态和关闭时的 inert 行为。
-- 价格、模型详情、关于、条款、隐私政策、其他认证页面使用官方 rc.51 布局。界面固定使用英语。
+- 顶部 Docs 和首页文档入口打开站内英文 `/docs`。示例使用当前站点的 API 地址，支持复制。管理员配置的文档链接显示为补充资源。
+- `/about` 默认展示本站介绍、平台入口和上游开源信息。管理员可用现有的 About 设置指定 Markdown、HTML 或外部页面。参见[文档页截图](./assets/screenshots/brainbutter-docs.png)和[关于页截图](./assets/screenshots/brainbutter-about.png)。
+- 条款、隐私政策和其他认证页面沿用官方 rc.51 布局。
 - 模型转发、认证和计费沿用 rc.51。
 
 交付站的默认站名和 Logo 由 `delivery/site.json` 指定。默认名称为 BrainButter AI，图标为奶油黄色脑形标志。SVG 随站交付，支持独立域名和离线加载。
@@ -23,11 +25,11 @@
 
 ## 主题作用域
 
-`web/src/styles/theme.css` 定义全站默认配色，`web/src/styles/delivery-public.css` 定义公开页的布局和装饰。默认首页显式传入 `delivery-public delivery-home`，登录页显式传入 `delivery-public delivery-auth`。控制台和其他页面共用全站默认配色。
+`web/src/styles/theme.css` 定义全站默认配色，`web/src/styles/delivery-public.css` 定义公开页的布局和装饰。默认首页、登录页、模型广场、模型详情和排行榜均使用 `delivery-public`。模型广场、模型详情和排行榜通过 `delivery-directory` 共用首页的暖色背景。控制台使用全站默认配色或用户选择的外观预设。
 
 Base UI 弹出层和 Sonner 提示只有在 `#root` 内存在当前主题页面时才继承对应颜色。显式选择的外观预设仍可用。
 
-站点名称、Logo、导航开关、认证开关和文档链接仍读取原有后台配置。自定义首页 URL/HTML/Markdown 分支保持官方实现，其内容不套用新的默认首页主题。
+站点名称、Logo、导航开关和认证开关读取原有后台配置。自定义首页 URL/HTML/Markdown 分支保持官方实现，其内容不套用新的默认首页主题。
 
 ## 开发与构建
 

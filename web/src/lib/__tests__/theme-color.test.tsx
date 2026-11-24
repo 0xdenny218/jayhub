@@ -54,6 +54,23 @@ describe('useThemeColor', () => {
     expect(result.current).toBe('rgb(10, 10, 10)')
   })
 
+  test('uses the chart palette when it differs from the console preset', () => {
+    const chart = document.createElement('section')
+    vi.mocked(window.getComputedStyle).mockImplementation(
+      (element) =>
+        ({
+          color: chart.contains(element)
+            ? 'rgb(115, 113, 104)'
+            : 'rgb(80, 20, 40)',
+        }) as CSSStyleDeclaration
+    )
+    const scope = { current: chart }
+    const { result } = renderHook(() =>
+      useThemeColor('--muted-foreground', scope)
+    )
+    expect(result.current).toBe('rgb(115, 113, 104)')
+  })
+
   test('re-resolves when the dark class is added to html', async () => {
     const { result } = renderHook(() => useThemeColor('--foreground'))
 

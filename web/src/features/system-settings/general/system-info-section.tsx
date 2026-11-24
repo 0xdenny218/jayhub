@@ -255,7 +255,9 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                       />
                     </FormControl>
                     <FormDescription>
-                      {t('Link to your documentation site')}
+                      {t(
+                        'Additional reference linked from the developer docs. The main Docs menu opens /docs.'
+                      )}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -293,16 +295,14 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                     <FormLabel>{t('About')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder={t(
-                          'Enter HTML code (e.g., <p>About us...</p>) or a URL (e.g., https://example.com) to embed as iframe'
-                        )}
+                        placeholder={t('Enter your About page content')}
                         rows={4}
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
                       {t(
-                        'Supports HTML markup or iframe embedding. Enter HTML code directly, or provide a complete URL to automatically embed it as an iframe.'
+                        'Leave this blank to show the default platform introduction. To use your own, enter Markdown, HTML, or a full URL to embed.'
                       )}
                     </FormDescription>
                     <FormMessage />
